@@ -48,6 +48,6 @@ The following parameters are optional:
 
 This was done using [Librato collectd plugin](https://github.com/librato/collectd-librato)
 
-![CPUs](https://github.com/enovance/collectd-nova-hypevisor-stats/raw/master/screenshots/graph_cpus.png)
-![RAM](https://github.com/enovance/collectd-nova-hypevisor-stats/raw/master/screenshots/graph_ram.png)
-![disk](https://github.com/enovance/collectd-nova-hypevisor-stats/raw/master/screenshots/graph_disk.png)
+![CPUs](https://raw.githubusercontent.com/enovance/collectd-nova-hypervisor-stats/master/screenshots/graph_cpus.png)
+![RAM](https://raw.githubusercontent.com/enovance/collectd-nova-hypervisor-stats/master/screenshots/graph_ram.png)
+![disk](https://raw.githubusercontent.com/enovance/collectd-nova-hypervisor-stats/master/screenshots/graph_disk.png)
