@@ -42,7 +42,7 @@ The following parameters are required:
 
 The following parameters are optional:
 * `EndpointType` - The type of the endpoint.  By default "publicURL".
-* `SpaceName` - Choose the name of the stats.  'nova.hypervisor_stats' by default.
+* `MetricName` - Choose the name of the metric.  'nova.hypervisor_stats' by default.
 * `Verbose` - Add some verbosity, visible in the collectd logs.
 
 # Graph examples
