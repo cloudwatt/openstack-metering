@@ -45,7 +45,8 @@ version = '0.1.0'
 
 config = {
     'endpoint_type': "publicURL",
-    'verbose_logging': False
+    'verbose_logging': False,
+    'space_name': 'nova.hypervisor_stats'
 }
 
 
@@ -55,7 +56,7 @@ def log_verbose(msg):
     collectd.info('nova hypervisor stats plugin [verbose]: %s' % msg)
 
 
-def dispatch_value(key, value, type, date=None, type_instance=None):
+def dispatch_value(key, value, type, space_name, date=None, type_instance=None):
     """Dispatch a value"""
 
     if not type_instance:
@@ -64,7 +65,7 @@ def dispatch_value(key, value, type, date=None, type_instance=None):
     value = int(value)
     log_verbose('Sending value: %s=%s' % (type_instance, value))
 
-    val = collectd.Values(plugin='nova_hypervisor_stats')
+    val = collectd.Values(plugin=space_name)
     val.type = type
     if date:
         val.time = date
@@ -88,6 +89,8 @@ def configure_callback(conf):
             config['endpoint_type'] = node.values[0]
         elif node.key == 'Verbose':
             config['verbose_logging'] = bool(node.values[0])
+        elif node.key == 'SpaceName':
+            config['space_name'] = node.values[0]
         else:
             collectd.warning('nova_hypervisor_stats_info plugin: Unknown config key: %s.'
                              % node.key)
@@ -103,7 +106,7 @@ def configure_callback(conf):
     if not config.has_key('tenant'):
         raise Exception('Tenant not defined')
 
-    log_verbose('Configured with auth_url=%s, username=%s, password=%s, tenant=%s, endpoint_type=%s' % (config['auth_url'], config['username'], config['password'], config['tenant'], config['endpoint_type']))
+    log_verbose('Configured with auth_url=%s, username=%s, password=%s, tenant=%s, endpoint_type=%s, space_name=%s' % (config['auth_url'], config['username'], config['password'], config['tenant'], config['endpoint_type'], config['space_name']))
 
 def init_callback():
     """Initialization block"""
@@ -121,7 +124,7 @@ def read_callback(data=None):
     info = config['util'].get_stats()
     log_verbose(pformat(info))
     for key in info:
-        dispatch_value(key, info[key], 'gauge', config['util'].last_stats)
+        dispatch_value(key, info[key], 'gauge', config['space_name'], config['util'].last_stats)
 
 
 plugin_name = 'Collectd-nova-hypervisor-stats.py'  
