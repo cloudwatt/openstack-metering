@@ -127,7 +127,7 @@ def read_callback(data=None):
         dispatch_value(key, info[key], 'gauge', config['metric_name'], config['util'].last_stats)
 
 
-plugin_name = 'Collectd-nova-hypervisor-stats.py'  
+plugin_name = 'Collectd-nova-hypervisor-stats.py'
 
 collectd.register_config(configure_callback)
 collectd.register_init(init_callback)
