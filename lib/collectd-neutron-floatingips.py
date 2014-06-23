@@ -203,7 +203,7 @@ def read_callback(data=None):
         return
     if not config.has_key('util'):
         if not config['util'].connection_done:
-            log_warning("Connection has not been done. Existing.")
+            log_warning("Connection has not been done. Exiting.")
             return
     info = config['util'].get_stats()
     log_verbose(pformat(info))
