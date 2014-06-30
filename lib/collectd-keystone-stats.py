@@ -72,7 +72,6 @@ def log_warning(msg):
 
 
 def log_error(msg):
-    global config
     error = "%s [error]: %s\n" % (plugin_name, msg)
     raise(Exception(error))
 
