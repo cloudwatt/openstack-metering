@@ -46,6 +46,7 @@ version = '0.1.0'
 config = {
     'endpoint_type': "publicURL",
     'verbose_logging': False,
+    'error': None,
     'metric_name': 'openstack.nova.hypervisor_stats'
 }
 
