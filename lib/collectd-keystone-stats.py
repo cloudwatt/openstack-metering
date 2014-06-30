@@ -44,6 +44,7 @@ config = {
     'metric_name': 'openstack.keystone.stats',
 }
 
+
 class Novautils:
     def __init__(self, nova_client):
         self.nova_client = nova_client
@@ -62,7 +63,6 @@ class Novautils:
     def get_stats(self):
         stats = {}
         self.last_stats = int(mktime(datetime.now().timetuple()))
-        #TODO: check what happens when pagination is activated.
         stats['users'] = len(self.nova_client.users.list())
         stats['tenants'] = len(self.nova_client.tenants.list())
 
@@ -74,16 +74,20 @@ def log_verbose(msg):
         return
     collectd.info("%s [verbose]: %s" % (plugin_name, msg))
 
+
 def log_warning(msg):
     collectd.warning("%s [warning]: %s" % (plugin_name, msg))
-    
+
+
 def log_error(msg):
     global config
     error = "%s [error]: %s" % (plugin_name, msg)
     collectd.error(error)
     config['error'] = error
 
-def dispatch_value(key, value, type, metric_name, date=None, type_instance=None):
+
+def dispatch_value(key, value, type, metric_name, date=None,
+                   type_instance=None):
     """Dispatch a value"""
 
     if not type_instance:
@@ -99,6 +103,7 @@ def dispatch_value(key, value, type, metric_name, date=None, type_instance=None)
     val.type_instance = type_instance
     val.values = [value]
     val.dispatch()
+
 
 def configure_callback(conf):
     """Receive configuration block"""
@@ -119,21 +124,29 @@ def configure_callback(conf):
         elif node.key == 'MetricName':
             config['metric_name'] = node.values[0]
         else:
-            collectd.warning('nova_hypervisor_stats_info plugin: Unknown config key: %s.'
-                             % node.key)
-    if not config.has_key('auth_url'):
+            collectd.warning('%s plugin: Unknown config key: %s.'
+                             % (plugin_name, node.key))
+    if 'auth_url' not in config:
         log_error('AuthURL not defined')
 
-    if not config.has_key('username'):
+    if 'username' not in config:
         log_error('Username not defined')
 
-    if not config.has_key('password'):
+    if 'password' not in config:
         log_error('Password not defined')
 
-    if not config.has_key('tenant'):
+    if 'tenant' not in config:
         log_error('Tenant not defined')
 
-    log_verbose('Configured with auth_url=%s, username=%s, password=%s, tenant=%s, endpoint_type=%s, metric_name=%s' % (config['auth_url'], config['username'], config['password'], config['tenant'], config['endpoint_type'], config['metric_name']))
+    log_verbose('Configured with auth_url=%s, username=%s, password=%s,' +
+                ' tenant=%s, endpoint_type=%s, metric_name=%s' %
+                (config['auth_url'],
+                 config['username'],
+                 config['password'],
+                 config['tenant'],
+                 config['endpoint_type'],
+                 config['metric_name']))
+
 
 def connect(config):
     try:
@@ -150,6 +163,7 @@ def connect(config):
         log_error("Authentication error: %s\n" % e)
     return nova_client
 
+
 def init_callback():
     """Initialization block"""
     global config
@@ -158,20 +172,24 @@ def init_callback():
     config['util'].check_connection()
     log_verbose('Got a valid connection to keystone API')
 
+
 def read_callback(data=None):
     if config['error']:
-        log_warning("Got a error during initialization.  Fix it and restart collectd")
+        log_warning("Got a error during initialization.  " +
+                    "Fix it and restart collectd")
         return
-    if not config.has_key('util'):
-        if not config['util'].connection_done:
-            log_warning("Connection has not been done. Exiting.")
-            return
+    if 'util' not in config:
+        connect(config)
+        return
     info = config['util'].get_stats()
     log_verbose(pformat(info))
     for key in info:
-        dispatch_value(key, info[key], 'gauge', config['metric_name'], config['util'].last_stats)
+        dispatch_value(key,
+                       info[key],
+                       'gauge',
+                       config['metric_name'],
+                       config['util'].last_stats)
 
 collectd.register_config(configure_callback)
 collectd.register_init(init_callback)
 collectd.register_read(read_callback)
-                
