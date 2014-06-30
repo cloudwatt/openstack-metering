@@ -51,14 +51,6 @@ class Novautils:
         self.connection_done = None
         self.stats = {}
 
-    def check_connection(self, force=False):
-        if not self.connection_done or force:
-            try:
-                # force a connection to the server
-                self.connection_done = self.nova_client.authenticate()
-            except Exception as e:
-                log_error("Cannot connect to cinder: %s\n" % e)
-
     def _set_stats(self, cinder, meth):
         for keys in ['_count', '_size', '_status', '_attached', '_bootable']:
             if find(meth, 'snapshots') >= 0:
@@ -120,10 +112,8 @@ def log_warning(msg):
 
 
 def log_error(msg):
-    global config
-    error = "%s [error]: %s" % (plugin_name, msg)
-    collectd.error(error)
-    config['error'] = error
+    error = "%s [error]: %s\n" % (plugin_name, msg)
+    raise(Exception(error))
 
 
 def dispatch_value(key, value, type, metric_name, date=None,
@@ -160,16 +150,15 @@ def configure_callback(conf):
         elif node.key == 'EndpointType':
             config['endpoint_type'] = node.values[0]
         elif node.key == 'Verbose':
-            config['verbose_logging'] = bool(node.values[0])
+            config['verbose_logging'] = node.values[0]
         elif node.key == 'MetricName':
             config['metric_name'] = node.values[0]
         elif node.key == 'VolumeType':
             config['volume_type'] = node.values[0]
         else:
-            collectd.warning('nova_hypervisor_stats_info plugin:'
-                             + " Unknown config key: %s."
-                             % node.key)
-    if  'auth_url' not in config:
+            collectd.warning('%s plugin: Unknown config key: %s.'
+                             % (plugin_name, node.key))
+    if 'auth_url' not in config:
         log_error('AuthURL not defined')
 
     if 'username' not in config:
@@ -201,30 +190,24 @@ def connect(config):
                              api_key=config['password'],
                              auth_url=config['auth_url'],
                              endpoint_type=config['endpoint_type'])
-
+        nova_client.authenticate()
     except Exception as e:
-        log_error("Error creating cinder communication object: %s" % e)
-        return
-
-    config['util'] = Novautils(nova_client)
-    config['util'].check_connection()
+        log_error("Connection failed: %s" % e)
+    return nova_client
 
 
 def init_callback():
     """Initialization block"""
     global config
-    connect(config)
-    log_verbose('Got a valid connection to nova API')
+    nova_client = connect(config)
+    log_verbose('Got a valid connection to cinder API')
+    config['util'] = Novautils(nova_client)
 
 
 def read_callback(data=None):
-    if config['error']:
-        log_warning("Got a error during initialization.  " +
-                    "Fix it and restart collectd")
-        return
+    global config
     if 'util' not in config:
-        connect(config)
-        return
+        log_error("Problem during initialization, fix and restart collectd.")
     info = config['util'].get_stats(config['volume_type'])
     log_verbose(pformat(info))
     for key in info:
