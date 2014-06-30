@@ -25,16 +25,16 @@
 import collectd
 
 from novaclient.client import Client
-from novaclient import exceptions
 from datetime import datetime
 from time import mktime
 from pprint import pformat
+
 
 class Novautils:
     def __init__(self, nova_client):
         self.nova_client = nova_client
         self.last_stats = None
-    
+
     def get_stats(self):
         self.last_stats = int(mktime(datetime.now().timetuple()))
         return self.nova_client.hypervisors.statistics()._info
@@ -50,13 +50,25 @@ config = {
 }
 
 
+def log_warning(msg):
+    collectd.warning("%s [warning]: %s" % (plugin_name, msg))
+
+
 def log_verbose(msg):
     if not config['verbose_logging']:
         return
     collectd.info('nova hypervisor stats plugin [verbose]: %s' % msg)
 
 
-def dispatch_value(key, value, type, metric_name, date=None, type_instance=None):
+def log_error(msg):
+    global config
+    error = "%s [error]: %s" % (plugin_name, msg)
+    collectd.error(error)
+    config['error'] = error
+
+
+def dispatch_value(key, value, type, metric_name, date=None,
+                   type_instance=None):
     """Dispatch a value"""
 
     if not type_instance:
@@ -72,6 +84,7 @@ def dispatch_value(key, value, type, metric_name, date=None, type_instance=None)
     val.type_instance = type_instance
     val.values = [value]
     val.dispatch()
+
 
 def configure_callback(conf):
     """Receive configuration block"""
@@ -92,21 +105,29 @@ def configure_callback(conf):
         elif node.key == 'MetricName':
             config['metric_name'] = node.values[0]
         else:
-            collectd.warning('nova_hypervisor_stats_info plugin: Unknown config key: %s.'
-                             % node.key)
-    if not config.has_key('auth_url'):
-        raise Exception('AuthURL not defined')
+            collectd.warning('%s plugin: Unknown config key: %s.'
+                             % (plugin_name, node.key))
+    if 'auth_url' not in config:
+        log_error('AuthURL not defined')
 
-    if not config.has_key('username'):
-        raise Exception('Username not defined')
+    if 'username' not in config:
+        log_error('Username not defined')
 
-    if not config.has_key('password'):
-        raise Exception('Password not defined')
+    if 'password' not in config:
+        log_error('Password not defined')
 
-    if not config.has_key('tenant'):
-        raise Exception('Tenant not defined')
+    if 'tenant' not in config:
+        log_error('Tenant not defined')
 
-    log_verbose('Configured with auth_url=%s, username=%s, password=%s, tenant=%s, endpoint_type=%s, metric_name=%s' % (config['auth_url'], config['username'], config['password'], config['tenant'], config['endpoint_type'], config['metric_name']))
+    log_verbose('Configured with auth_url=%s, username=%s, password=%s,' +
+                ' tenant=%s, endpoint_type=%s, metric_name=%s' %
+                (config['auth_url'],
+                 config['username'],
+                 config['password'],
+                 config['tenant'],
+                 config['endpoint_type'],
+                 config['metric_name']))
+
 
 def init_callback():
     """Initialization block"""
@@ -120,14 +141,23 @@ def init_callback():
     log_verbose('Got a valid connection to nova API')
     config['util'] = Novautils(nova_client)
 
+
 def read_callback(data=None):
+    if config['error']:
+        log_warning("Got a error during initialization.  " +
+                    "Fix it and restart collectd")
+        return
     info = config['util'].get_stats()
     log_verbose(pformat(info))
     for key in info:
-        dispatch_value(key, info[key], 'gauge', config['metric_name'], config['util'].last_stats)
+        dispatch_value(key,
+                       info[key],
+                       'gauge',
+                       config['metric_name'],
+                       config['util'].last_stats)
 
 
-plugin_name = 'Collectd-nova-hypervisor-stats.py'
+plugin_name = 'collectd-nova-hypervisor-stats'
 
 collectd.register_config(configure_callback)
 collectd.register_init(init_callback)
