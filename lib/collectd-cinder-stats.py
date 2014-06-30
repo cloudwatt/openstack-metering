@@ -84,7 +84,8 @@ class Novautils:
             elif find(keys, 'attached') >= 0:
                 self.stats[dyn_key] += len(cinder.attachments)
             elif find(keys, 'boot') >= 0:
-                if cinder.bootable and cinder.bootable not in ['false', 'False']:
+                if cinder.bootable and \
+                   cinder.bootable not in ['false', 'False']:
                     self.stats[dyn_key] += 1
             else:
                 self.stats[dyn_key] += 1
@@ -125,7 +126,8 @@ def log_error(msg):
     config['error'] = error
 
 
-def dispatch_value(key, value, type, metric_name, date=None, type_instance=None):
+def dispatch_value(key, value, type, metric_name, date=None,
+                   type_instance=None):
     """Dispatch a value"""
 
     if not type_instance:
@@ -164,21 +166,29 @@ def configure_callback(conf):
         elif node.key == 'VolumeType':
             config['volume_type'] = node.values[0]
         else:
-            collectd.warning('nova_hypervisor_stats_info plugin: Unknown config key: %s.'
+            collectd.warning('nova_hypervisor_stats_info plugin:'
+                             + " Unknown config key: %s."
                              % node.key)
-    if not config.has_key('auth_url'):
+    if  'auth_url' not in config:
         log_error('AuthURL not defined')
 
-    if not config.has_key('username'):
+    if 'username' not in config:
         log_error('Username not defined')
 
-    if not config.has_key('password'):
+    if 'password' not in config:
         log_error('Password not defined')
 
-    if not config.has_key('tenant'):
+    if 'tenant' not in config:
         log_error('Tenant not defined')
 
-    log_verbose('Configured with auth_url=%s, username=%s, password=%s, tenant=%s, endpoint_type=%s,volume_type=%s' % (config['auth_url'], config['username'], config['password'], config['tenant'], config['endpoint_type'], config['volume_type']))
+    log_verbose('Configured with auth_url=%s, username=%s, password=%s,' +
+                ' tenant=%s, endpoint_type=%s,volume_type=%s'
+                % (config['auth_url'],
+                   config['username'],
+                   config['password'],
+                   config['tenant'],
+                   config['endpoint_type'],
+                   config['volume_type']))
 
 
 def connect(config):
@@ -191,11 +201,10 @@ def connect(config):
                              api_key=config['password'],
                              auth_url=config['auth_url'],
                              endpoint_type=config['endpoint_type'])
-        
+
     except Exception as e:
         log_error("Error creating cinder communication object: %s" % e)
         return
-
 
     config['util'] = Novautils(nova_client)
     config['util'].check_connection()
@@ -210,18 +219,21 @@ def init_callback():
 
 def read_callback(data=None):
     if config['error']:
-        log_warning("Got a error during initialization.  Fix it and restart collectd")
+        log_warning("Got a error during initialization.  " +
+                    "Fix it and restart collectd")
         return
-    if not config.has_key('util'):
-        config['util'] = Novautils(nova_client)
-        config['util'].check_connection()
+    if 'util' not in config:
+        connect(config)
         return
     info = config['util'].get_stats(config['volume_type'])
     log_verbose(pformat(info))
     for key in info:
-        dispatch_value(key, info[key], 'gauge', config['metric_name'], config['util'].last_stats)
+        dispatch_value(key,
+                       info[key],
+                       'gauge',
+                       config['metric_name'],
+                       config['util'].last_stats)
 
 collectd.register_config(configure_callback)
 collectd.register_init(init_callback)
 collectd.register_read(read_callback)
-
