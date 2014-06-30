@@ -52,14 +52,6 @@ class Novautils:
         self.connection_done = None
         self.stats = {}
 
-    def check_connection(self, force=False):
-        if not self.connection_done or force:
-            try:
-                # force a connection to the server
-                self.connection_done = self.nova_client.authenticate()
-            except Exception as e:
-                log_error("Cannot connect to cinder: %s\n" % e)
-
     def get_stats(self):
         stats = {}
         self.last_stats = int(mktime(datetime.now().timetuple()))
@@ -72,18 +64,17 @@ class Novautils:
 def log_verbose(msg):
     if not config['verbose_logging']:
         return
-    collectd.info("%s [verbose]: %s" % (plugin_name, msg))
+    collectd.info("%s [verbose]: %s\n" % (plugin_name, msg))
 
 
 def log_warning(msg):
-    collectd.warning("%s [warning]: %s" % (plugin_name, msg))
+    collectd.warning("%s [warning]: %s\n" % (plugin_name, msg))
 
 
 def log_error(msg):
     global config
-    error = "%s [error]: %s" % (plugin_name, msg)
-    collectd.error(error)
-    config['error'] = error
+    error = "%s [error]: %s\n" % (plugin_name, msg)
+    raise(Exception(error))
 
 
 def dispatch_value(key, value, type, metric_name, date=None,
@@ -120,7 +111,7 @@ def configure_callback(conf):
         elif node.key == 'EndpointType':
             config['endpoint_type'] = node.values[0]
         elif node.key == 'Verbose':
-            config['verbose_logging'] = bool(node.values[0])
+            config['verbose_logging'] = node.values[0]
         elif node.key == 'MetricName':
             config['metric_name'] = node.values[0]
         else:
@@ -158,9 +149,9 @@ def connect(config):
         )
         nova_client.authenticate()
         if not nova_client.tenants.list():
-            log_error("The user must have the admin role to work.")
+            log_error("The user must have the admin role.")
     except Exception as e:
-        log_error("Authentication error: %s\n" % e)
+        log_error("Connection failed: %s" % e)
     return nova_client
 
 
@@ -169,18 +160,13 @@ def init_callback():
     global config
     client = connect(config)
     config['util'] = Novautils(client)
-    config['util'].check_connection()
     log_verbose('Got a valid connection to keystone API')
 
 
 def read_callback(data=None):
-    if config['error']:
-        log_warning("Got a error during initialization.  " +
-                    "Fix it and restart collectd")
-        return
+    global config
     if 'util' not in config:
-        connect(config)
-        return
+        log_error("Problem during initialization, fix and restart collectd.")
     info = config['util'].get_stats()
     log_verbose(pformat(info))
     for key in info:
