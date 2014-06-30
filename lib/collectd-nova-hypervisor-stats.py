@@ -51,21 +51,19 @@ config = {
 }
 
 
+def log_verbose(msg):
+    if not config['verbose_logging']:
+        return
+    collectd.info("%s [verbose]: %s\n" % (plugin_name, msg))
+
+
 def log_warning(msg):
     collectd.warning("%s [warning]: %s" % (plugin_name, msg))
 
 
-def log_verbose(msg):
-    if not config['verbose_logging']:
-        return
-    collectd.info('nova hypervisor stats plugin [verbose]: %s' % msg)
-
-
 def log_error(msg):
-    global config
-    error = "%s [error]: %s" % (plugin_name, msg)
-    collectd.error(error)
-    config['error'] = error
+    error = "%s [error]: %s\n" % (plugin_name, msg)
+    raise(Exception(error))
 
 
 def dispatch_value(key, value, type, metric_name, date=None,
@@ -102,7 +100,7 @@ def configure_callback(conf):
         elif node.key == 'EndpointType':
             config['endpoint_type'] = node.values[0]
         elif node.key == 'Verbose':
-            config['verbose_logging'] = bool(node.values[0])
+            config['verbose_logging'] = node.values[0]
         elif node.key == 'MetricName':
             config['metric_name'] = node.values[0]
         else:
@@ -130,24 +128,32 @@ def configure_callback(conf):
                  config['metric_name']))
 
 
-def init_callback():
-    """Initialization block"""
-    global config
+def connect(config):
     nova_client = Client('1.1',
                          username=config['username'],
                          project_id=config['tenant'],
                          api_key=config['password'],
                          auth_url=config['auth_url'],
                          endpoint_type=config['endpoint_type'])
+    try:
+        nova_client.authenticate()
+    except Exception as e:
+        log_error("Connection failed: %s" % e)
+    return nova_client
+
+
+def init_callback():
+    """Initialization block"""
+    global config
+    nova_client = connect(config)
     log_verbose('Got a valid connection to nova API')
     config['util'] = Novautils(nova_client)
 
 
 def read_callback(data=None):
-    if config['error']:
-        log_warning("Got a error during initialization.  " +
-                    "Fix it and restart collectd")
-        return
+    global config
+    if 'util' not in config:
+        log_error("Problem during initialization, fix and restart collectd.")
     info = config['util'].get_stats()
     log_verbose(pformat(info))
     for key in info:
