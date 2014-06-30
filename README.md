@@ -129,6 +129,38 @@ The following parameters are optional:
 * `MetricName` - Choose the name of the metric.  'nova.hypervisor_stats' by default.
 * `Verbose` - Add some verbosity, visible in the collectd logs.
 
+## collectd-keystone-stats ##
+
+Add the following to your collectd config and restart collectd.
+
+     <LoadPlugin "python">
+         Globals true
+     </LoadPlugin>
+    
+     <Plugin "python">
+     ModulePath "/usr/local/lib"
+    
+     Import "collectd-keystone-stats"
+
+     <Module "collectd-keystone-stats">
+         AuthURL   "http://myopenstack.cloud.home:5000/v2.0"
+         Username  "admin"
+         Password  "hardhard"
+         Tenant    "admin"
+     </Module>
+     </Plugin>
+
+The following parameters are required:
+
+* `AuthURL` - The identity service for openstack;
+* `Username` - The user to use to log in (must have admin role);
+* `Password` - Well .... the password;
+* `Tenant` - Tenant to use
+
+The following parameters are optional:
+* `EndpointType` - The type of the endpoint.  By default "publicURL".
+* `MetricName` - Choose the name of the metric.  'openstack.keystone.stats' by default.
+* `Verbose` - Add some verbosity, visible in the collectd logs.
 
 # Graph examples #
 
