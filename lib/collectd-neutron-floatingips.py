@@ -25,13 +25,14 @@
 import collectd
 
 from keystoneclient.v2_0 import client
-from neutronclient.neutron import client as neutron 
+from neutronclient.neutron import client as neutron
 from datetime import datetime
 from time import mktime
 from pprint import pformat
 import re
 
 plugin_name = 'collectd-neutron-floatingips'
+
 
 class Novautils:
     def __init__(self, neutron_client, public_network=None):
@@ -43,7 +44,7 @@ class Novautils:
     def check_connection(self, force=False):
         if not self.connection_done or force:
             try:
-        # force a connection to the server
+                # force a connection to the server
                 self.connection_done = self.neutron_client.list_ports()
             except Exception as e:
                 log_error("Cannot connect to neutron: %s\n" % e)
@@ -51,7 +52,6 @@ class Novautils:
     def get_stats(self):
         stats = {}
         self.last_stats = int(mktime(datetime.now().timetuple()))
-        #TODO: check what happens when pagination is activated.
         stats['used'] = len(self.neutron_client.list_floatingips(
             fields='tenant_id')['floatingips'])
         if self.public_network:
@@ -66,21 +66,25 @@ class Novautils:
         subnet_mask = re.compile('[^/]+/(\d{1,2})')
         subnets_from_public_network = []
         try:
-            subnets_from_public_network = self.neutron_client.list_networks(name=self.public_network)['networks'][0]['subnets']
+            subnets_from_public_network = self.neutron_client.list_networks(
+                name=self.public_network)['networks'][0]['subnets']
         except Exception as e:
-            log_warning("Cannot get subnets associated with %s network" % self.public_network)
+            log_warning("Cannot get subnets associated with %s network: %s" %
+                        (self.public_network, e))
             return None
 
         for public_subnet_id in subnets_from_public_network:
             net_info = self.neutron_client.list_subnets(
-                id=public_subnet_id, fields=['cidr', 'gateway_ip'])['subnets'][0]
+                id=public_subnet_id,
+                fields=['cidr', 'gateway_ip'])['subnets'][0]
             subnet_match = subnet_mask.match(net_info['cidr'])
             if not subnet_match:
-                log_warning("Cannot retrieve the subnet mask of subnet_id %" % public_subnet_id)
+                log_warning("Cannot retrieve the subnet mask of subnet_id %" %
+                            public_subnet_id)
                 next
             subnet = int(subnet_match.group(1))
             ips_number = 2**(32 - subnet)
-            if net_info.has_key('gateway_ip') and net_info['gateway_ip']:
+            if 'gateway_ip' in net_info and net_info['gateway_ip']:
                 ips_number -= 1
             ips_number -= 2
             total_ip += ips_number
@@ -104,16 +108,20 @@ def log_verbose(msg):
         return
     collectd.info("%s [verbose]: %s" % (plugin_name, msg))
 
+
 def log_warning(msg):
     collectd.warning("%s [warning]: %s" % (plugin_name, msg))
-    
+
+
 def log_error(msg):
     global config
     error = "%s [error]: %s" % (plugin_name, msg)
     collectd.error(error)
     config['error'] = error
 
-def dispatch_value(key, value, type, metric_name, date=None, type_instance=None):
+
+def dispatch_value(key, value, type, metric_name, date=None,
+                   type_instance=None):
     """Dispatch a value"""
 
     if not type_instance:
@@ -129,6 +137,7 @@ def dispatch_value(key, value, type, metric_name, date=None, type_instance=None)
     val.type_instance = type_instance
     val.values = [value]
     val.dispatch()
+
 
 def configure_callback(conf):
     """Receive configuration block"""
@@ -151,21 +160,29 @@ def configure_callback(conf):
         elif node.key == 'PublicNetwork':
             config['public_network'] = node.values[0]
         else:
-            collectd.warning('nova_hypervisor_stats_info plugin: Unknown config key: %s.'
-                             % node.key)
-    if not config.has_key('auth_url'):
+            collectd.warning('%s plugin: Unknown config key: %s.'
+                             % (plugin_name, node.key))
+    if 'auth_url' not in config:
         log_error('AuthURL not defined')
 
-    if not config.has_key('username'):
+    if 'username' not in config:
         log_error('Username not defined')
 
-    if not config.has_key('password'):
+    if 'password' not in config:
         log_error('Password not defined')
 
-    if not config.has_key('tenant'):
+    if 'tenant' not in config:
         log_error('Tenant not defined')
 
-    log_verbose('Configured with auth_url=%s, username=%s, password=%s, tenant=%s, endpoint_type=%s, metric_name=%s' % (config['auth_url'], config['username'], config['password'], config['tenant'], config['endpoint_type'], config['metric_name']))
+    log_verbose('Configured with auth_url=%s, username=%s, password=%s,' +
+                ' tenant=%s, endpoint_type=%s, metric_name=%s' %
+                (config['auth_url'],
+                 config['username'],
+                 config['password'],
+                 config['tenant'],
+                 config['endpoint_type'],
+                 config['metric_name']))
+
 
 def connect(config):
     try:
@@ -180,7 +197,8 @@ def connect(config):
             log_error("The user must have the admin role to work.")
     except Exception as e:
         log_error("Authentication error: %s\n" % e)
-    endpoint = nova_client.service_catalog.get_endpoints('network')['network'][0][config['endpoint_type']]
+    endpoint = nova_client.service_catalog.get_endpoints(
+        'network')['network'][0][config['endpoint_type']]
     token = nova_client.service_catalog.get_token()['id']
     neutron_client = neutron.Client('2.0',
                                     endpoint_url=endpoint,
@@ -191,24 +209,31 @@ def connect(config):
     config['util'] = Novautils(**conf)
     config['util'].check_connection()
 
+
 def init_callback():
     """Initialization block"""
     global config
     connect(config)
     log_verbose('Got a valid connection to nova API')
 
+
 def read_callback(data=None):
     if config['error']:
-        log_warning("Got a error during initialization.  Fix it and restart collectd")
+        log_warning("Got a error during initialization.  " +
+                    "Fix it and restart collectd")
         return
-    if not config.has_key('util'):
+    if 'util' not in config:
         if not config['util'].connection_done:
             log_warning("Connection has not been done. Exiting.")
             return
     info = config['util'].get_stats()
     log_verbose(pformat(info))
     for key in info:
-        dispatch_value(key, info[key], 'gauge', config['metric_name'], config['util'].last_stats)
+        dispatch_value(key,
+                       info[key],
+                       'gauge',
+                       config['metric_name'],
+                       config['util'].last_stats)
 
 collectd.register_config(configure_callback)
 collectd.register_init(init_callback)
