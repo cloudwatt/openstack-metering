@@ -107,9 +107,9 @@ Add the following to your collectd config and restart collectd.
      <Plugin "python">
      ModulePath "/usr/local/lib"
     
-     Import "collectd-cinder-stats"
+     Import "collectd-neutron-floatingips"
 
-     <Module "collectd-volumes-stats">
+     <Module "collectd-neutron-floatingips">
          AuthURL   "http://myopenstack.cloud.home:5000/v2.0"
          Username  "admin"
          Password  "hardhard"
@@ -129,9 +129,6 @@ The following parameters are optional:
 * `MetricName` - Choose the name of the metric.  'nova.hypervisor_stats' by default.
 * `Verbose` - Add some verbosity, visible in the collectd logs.
 
-Free space on different backend is not available until
-[this blueprint](https://blueprints.launchpad.net/cinder/+spec/volume-statistics-reporting)
-is implemented.
 
 # Graph examples #
 
