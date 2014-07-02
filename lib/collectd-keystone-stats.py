@@ -128,14 +128,16 @@ def configure_callback(conf):
     if 'tenant' not in config:
         log_error('Tenant not defined')
 
-    log_verbose('Configured with auth_url=%s, username=%s, password=%s,' +
-                ' tenant=%s, endpoint_type=%s, metric_name=%s' %
-                (config['auth_url'],
-                 config['username'],
-                 config['password'],
-                 config['tenant'],
-                 config['endpoint_type'],
-                 config['metric_name']))
+    log_verbose(
+        "Configured with auth_url=%s, username=%s, password=%s, tenant=%s, " %
+        (config['auth_url'],
+         config['username'],
+         config['password'],
+         config['tenant']) +
+        " endpoint_type=%s, metric_name=%s" %
+        (config['endpoint_type'],
+         config['metric_name'])
+    )
 
 
 def connect(config):
