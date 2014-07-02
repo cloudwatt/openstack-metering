@@ -29,7 +29,7 @@ from time import mktime
 from pprint import pformat
 from string import find
 
-plugin_name = 'collectd-volumes-stats'
+plugin_name = 'collectd-cinder-stats'
 
 # NOTE: This version is grepped from the Makefile, so don't change the
 # format of this line.
