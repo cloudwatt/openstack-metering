@@ -100,6 +100,7 @@ config = {
     'public_network': 'public',
     'error': None,
     'metric_name': 'openstack.neutron.floating_ips',
+    '_token_error': 0
 }
 
 
@@ -221,6 +222,7 @@ def init_callback():
 
 
 def read_callback(data=None):
+    global config
     if config['error']:
         log_warning("Got a error during initialization.  " +
                     "Fix it and restart collectd")
@@ -231,12 +233,25 @@ def read_callback(data=None):
             return
     info = config['util'].get_stats()
     log_verbose(pformat(info))
-    for key in info:
-        dispatch_value(key,
-                       info[key],
-                       'gauge',
-                       config['metric_name'],
-                       config['util'].last_stats)
+    try:
+        for key in info:
+            dispatch_value(key,
+                           info[key],
+                           'gauge',
+                           config['metric_name'],
+                           config['util'].last_stats)
+        config['_token_error'] = 0
+    except TypeError as e:
+        # Not obvious but it means that the token is expired.  This is
+        # a quick hack to fix it.
+        config['_token_error'] += 1
+        log_warning("Token has expired (%s)" % e)
+        if config['_token_error'] < 10:
+            connect(config)
+        else:
+            # too much retry, giving up
+            log_error(
+                "Problem with the plugin.  Tried to reconnect but failed" % e)
 
 collectd.register_config(configure_callback)
 collectd.register_init(init_callback)
