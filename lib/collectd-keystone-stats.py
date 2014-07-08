@@ -45,7 +45,7 @@ config = {
 }
 
 
-class Novautils:
+class OpenstackUtils:
     def __init__(self, nova_client):
         self.nova_client = nova_client
         self.last_stats = None
@@ -160,7 +160,7 @@ def init_callback():
     """Initialization block"""
     global config
     client = connect(config)
-    config['util'] = Novautils(client)
+    config['util'] = OpenstackUtils(client)
     log_verbose('Got a valid connection to keystone API')
 
 

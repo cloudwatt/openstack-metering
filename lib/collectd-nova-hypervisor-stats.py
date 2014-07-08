@@ -30,7 +30,7 @@ from time import mktime
 from pprint import pformat
 
 
-class Novautils:
+class OpenstackUtils:
     def __init__(self, nova_client):
         self.nova_client = nova_client
         self.last_stats = None
@@ -149,7 +149,7 @@ def init_callback():
     global config
     nova_client = connect(config)
     log_verbose('Got a valid connection to nova API')
-    config['util'] = Novautils(nova_client)
+    config['util'] = OpenstackUtils(nova_client)
 
 
 def read_callback(data=None):

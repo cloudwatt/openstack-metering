@@ -34,7 +34,7 @@ import re
 plugin_name = 'collectd-neutron-floatingips'
 
 
-class Novautils:
+class OpenstackUtils:
     def __init__(self, neutron_client, public_network=None):
         self.neutron_client = neutron_client
         self.last_stats = None
@@ -210,7 +210,7 @@ def connect(config):
     conf = {'neutron_client': neutron_client}
     if config['public_network'] and config['public_network'] != 'none':
         conf['public_network'] = config['public_network']
-    config['util'] = Novautils(**conf)
+    config['util'] = OpenstackUtils(**conf)
     config['util'].check_connection()
 
 
