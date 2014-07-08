@@ -95,7 +95,7 @@ class Novautils:
 version = '0.1.0'
 
 config = {
-    'endpoint_type': "publicURL",
+    'endpoint_type': "internalURL",
     'verbose_logging': False,
     'public_network': 'public',
     'error': None,

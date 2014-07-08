@@ -50,7 +50,7 @@ The following parameters are required:
 * `Tenant` - Tenant to use
 
 The following parameters are optional:
-* `EndpointType` - The type of the endpoint.  By default "publicURL".
+* `EndpointType` - The type of the endpoint.  By default "internalURL".
 * `MetricName` - Choose the name of the metric.  'nova.hypervisor_stats' by default.
 * `Verbose` - Add some verbosity, visible in the collectd logs.
 
@@ -83,7 +83,7 @@ The following parameters are required:
 * `Tenant` - Tenant to use
 
 The following parameters are optional:
-* `EndpointType` - The type of the endpoint.  By default "publicURL".
+* `EndpointType` - The type of the endpoint.  By default "internalURL".
 * `MetricName` - Choose the name of the metric.  'nova.hypervisor_stats' by default.
 * `Verbose` - Add some verbosity, visible in the collectd logs.
 * `PublicNetwork` - Used for calculating a estimation of floating ip available.  It's the name of the network where the public subnets are.  `public` by default, can be `none` to deactivate it.
@@ -125,7 +125,7 @@ The following parameters are required:
 * `Tenant` - Tenant to use
 
 The following parameters are optional:
-* `EndpointType` - The type of the endpoint.  By default "publicURL".
+* `EndpointType` - The type of the endpoint.  By default "internalURL".
 * `MetricName` - Choose the name of the metric.  'nova.hypervisor_stats' by default.
 * `Verbose` - Add some verbosity, visible in the collectd logs.
 
@@ -159,7 +159,7 @@ The following parameters are required:
 * `Tenant` - Tenant to use
 
 The following parameters are optional:
-* `EndpointType` - The type of the endpoint.  By default "publicURL".
+* `EndpointType` - The type of the endpoint.  By default "internalURL".
 * `MetricName` - Choose the name of the metric.  'openstack.keystone.stats' by default.
 * `Verbose` - Add some verbosity, visible in the collectd logs.
 
@@ -195,7 +195,7 @@ The following parameters are required:
 * `Tenant` - Tenant to use
 
 The following parameters are optional:
-* `EndpointType` - The type of the endpoint.  By default "publicURL".
+* `EndpointType` - The type of the endpoint.  By default "internalURL".
 * `MetricName` - Choose the name of the metric.  'openstack.keystone.stats' by default.
 * `Verbose` - Add some verbosity, visible in the collectd logs.
 

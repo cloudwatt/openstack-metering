@@ -37,7 +37,7 @@ plugin_name = 'collectd-keystone-stats'
 version = '0.1.0'
 
 config = {
-    'endpoint_type': "publicURL",
+    'endpoint_type': "internalURL",
     'verbose_logging': False,
     'error': None,
     'volume_type': None,
