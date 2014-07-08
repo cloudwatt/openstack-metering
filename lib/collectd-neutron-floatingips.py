@@ -22,8 +22,8 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 # Requirments: python-neutronclient, python-keystoneclient, collectd
-import collectd
-
+if __name__ != "__main__":
+    import collectd
 from keystoneclient.v2_0 import client
 from neutronclient.neutron import client as neutron
 from datetime import datetime

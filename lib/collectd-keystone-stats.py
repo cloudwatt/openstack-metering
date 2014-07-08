@@ -22,8 +22,8 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 # Requirments:  python-keystoneclient, collectd
-import collectd
-
+if __name__ != "__main__":
+    import collectd
 from keystoneclient.v2_0 import client
 from datetime import datetime
 from time import mktime

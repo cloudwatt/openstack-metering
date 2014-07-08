@@ -22,8 +22,8 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 # Requirments: python-novaclient, collectd
-import collectd
-
+if __name__ != "__main__":
+    import collectd
 from novaclient.client import Client
 from datetime import datetime
 from time import mktime

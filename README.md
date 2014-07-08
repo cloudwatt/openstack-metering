@@ -199,6 +199,15 @@ The following parameters are optional:
 * `MetricName` - Choose the name of the metric.  'openstack.keystone.stats' by default.
 * `Verbose` - Add some verbosity, visible in the collectd logs.
 
+# Debug #
+
+A litle utility is given to run the plugin on the command line in the
+bin directory.  To use it give the collectd script as argument and
+some other required parameters.  Not all parameters are yet supported.
+
+    ./bin/collectd-cli.py --script ./lib/collectd-nova-hypervisor-stats.py \
+            --auth_url $OS_AUTH_URL --username $OS_USERNAME --tenant $OS_TENANT_NAME --password $OS_PASSWORD 
+
 # Graph examples #
 
 ## collectd-nova-hypervisor-stats ##

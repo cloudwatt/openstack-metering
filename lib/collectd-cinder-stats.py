@@ -22,7 +22,8 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 # Requirments: python-cinderclient, collectd
-import collectd
+if __name__ != "__main__":
+    import collectd
 from cinderclient.client import Client
 from datetime import datetime
 from time import mktime
