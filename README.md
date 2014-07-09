@@ -210,11 +210,27 @@ some other required parameters.  Not all parameters are yet supported.
 
 # Graph examples #
 
+## collectd-cinder-stats ##
+
+![cinder](https://raw.githubusercontent.com/enovance/collectd-nova-hypervisor-stats/master/screenshots/cinder.png)
+
+## collectd-nova-aggregate ##
+
+![nova-aggregate](https://raw.githubusercontent.com/enovance/collectd-nova-hypervisor-stats/master/screenshots/nova-aggregate.png)
+
+## collectd-neutron-floatingips ##
+
+![floatingips](https://raw.githubusercontent.com/enovance/collectd-nova-hypervisor-stats/master/screenshots/neutron-floatingips.png)
+
+## collectd-keystone-stats ##
+
+![keystone](https://raw.githubusercontent.com/enovance/collectd-nova-hypervisor-stats/master/screenshots/keystone.png)
+
 ## collectd-nova-hypervisor-stats ##
 
 This was done using [Librato collectd plugin](https://github.com/librato/collectd-librato)
 
-![CPUs](https://raw.githubusercontent.com/enovance/collectd-nova-hypervisor-stats/master/screenshots/graph_cpus.png)
-![RAM](https://raw.githubusercontent.com/enovance/collectd-nova-hypervisor-stats/master/screenshots/graph_ram.png)
-![disk](https://raw.githubusercontent.com/enovance/collectd-nova-hypervisor-stats/master/screenshots/graph_disk.png)
-
+![Hypervisor](https://raw.githubusercontent.com/enovance/collectd-nova-hypervisor-stats/master/screenshots/nova-hypervisor.png)
+![disk](https://raw.githubusercontent.com/enovance/collectd-nova-hypervisor-stats/master/screenshots/nova-disk.png)
+![Mem](https://raw.githubusercontent.com/enovance/collectd-nova-hypervisor-stats/master/screenshots/nova-memory.png)
+![instance](https://raw.githubusercontent.com/enovance/collectd-nova-hypervisor-stats/master/screenshots/nova-instance.png)
