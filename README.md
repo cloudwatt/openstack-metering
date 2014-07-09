@@ -212,25 +212,25 @@ some other required parameters.  Not all parameters are yet supported.
 
 ## collectd-cinder-stats ##
 
-![cinder](https://raw.githubusercontent.com/enovance/collectd-nova-hypervisor-stats/master/screenshots/cinder.png)
+![cinder](https://raw.githubusercontent.com/enovance/openstack-metrics/master/screenshots/cinder.png)
 
 ## collectd-nova-aggregate ##
 
-![nova-aggregate](https://raw.githubusercontent.com/enovance/collectd-nova-hypervisor-stats/master/screenshots/nova-aggregate.png)
+![nova-aggregate](https://raw.githubusercontent.com/enovance/openstack-metrics/master/screenshots/nova-aggregate.png)
 
 ## collectd-neutron-floatingips ##
 
-![floatingips](https://raw.githubusercontent.com/enovance/collectd-nova-hypervisor-stats/master/screenshots/neutron-floatingips.png)
+![floatingips](https://raw.githubusercontent.com/enovance/openstack-metrics/master/screenshots/neutron-floatingips.png)
 
 ## collectd-keystone-stats ##
 
-![keystone](https://raw.githubusercontent.com/enovance/collectd-nova-hypervisor-stats/master/screenshots/keystone.png)
+![keystone](https://raw.githubusercontent.com/enovance/openstack-metrics/master/screenshots/keystone.png)
 
 ## collectd-nova-hypervisor-stats ##
 
 This was done using [Librato collectd plugin](https://github.com/librato/collectd-librato)
 
-![Hypervisor](https://raw.githubusercontent.com/enovance/collectd-nova-hypervisor-stats/master/screenshots/nova-hypervisor.png)
-![disk](https://raw.githubusercontent.com/enovance/collectd-nova-hypervisor-stats/master/screenshots/nova-disk.png)
-![Mem](https://raw.githubusercontent.com/enovance/collectd-nova-hypervisor-stats/master/screenshots/nova-memory.png)
-![instance](https://raw.githubusercontent.com/enovance/collectd-nova-hypervisor-stats/master/screenshots/nova-instance.png)
+![Hypervisor](https://raw.githubusercontent.com/enovance/openstack-metrics/master/screenshots/nova-hypervisor.png)
+![disk](https://raw.githubusercontent.com/enovance/openstack-metrics/master/screenshots/nova-disk.png)
+![Mem](https://raw.githubusercontent.com/enovance/openstack-metrics/master/screenshots/nova-memory.png)
+![instance](https://raw.githubusercontent.com/enovance/openstack-metrics/master/screenshots/nova-instance.png)
