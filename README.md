@@ -7,7 +7,8 @@ It currently consists of:
 * `collectd-nova-hypervisor-stats`: get the equivalent of `nova hypervisor-stats`.
 * `collectd-neutron-floatingips`: get the used and estimated total number of floating ip
 * `collectd-cinder-stats`: get the equivalent of `cinder {snapshot-}list --all_tenant`
-
+* `collectd-nova-aggregate`: get hypervisor stats splitted by aggregate
+* `collectd-keystone-stats`: get basic (user, tenant) keystone stats
 
 # Installation #
 
