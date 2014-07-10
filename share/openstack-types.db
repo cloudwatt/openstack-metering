@@ -1,0 +1,10 @@
+# cinder
+volumes_size		value:GAUGE:0:U
+volumes_status		value:GAUGE:0:U
+volumes_count		value:GAUGE:0:U
+volumes_bootable	value:GAUGE:0:U
+volumes_attached	value:GAUGE:0:U
+
+snapshots_size		value:GAUGE:0:U
+snapshots_status		value:GAUGE:0:U
+snapshots_count		value:GAUGE:0:U

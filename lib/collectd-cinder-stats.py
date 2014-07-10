@@ -29,6 +29,7 @@ from datetime import datetime
 from time import mktime
 from pprint import pformat
 from string import find
+import re
 
 plugin_name = 'collectd-cinder-stats'
 
@@ -42,6 +43,8 @@ config = {
     'error': None,
     'volume_type': None,
     'metric_name': 'openstack.cinder.stats',
+    '_regex_volumes': re.compile('([^.]+)\.([^.]+)(?:\.(.*))?'),
+    '_regex_snapshot': re.compile('([^.]+)(?:\.(.*))?')
 }
 
 
@@ -117,21 +120,28 @@ def log_error(msg):
     raise(Exception(error))
 
 
-def dispatch_value(key, value, type, metric_name, date=None,
-                   type_instance=None):
-    """Dispatch a value"""
-
-    if not type_instance:
-        type_instance = key
+def dispatch_value(key, value, type_name, plugin_name, date=None,
+                   type_instance=None, plugin_instance=None,
+                   host=None):
+    """Dispatch a value """
+    # host "/" plugin ["-" plugin instance] "/" type ["-" type instance]
 
     value = int(value)
-    log_verbose('Sending value: %s=%s' % (type_instance, value))
+    log_verbose('Sending value: %s=%s' %
+                (host + '.' + plugin_name + '-' + plugin_instance +
+                 '.' + type_name + '-' + type_instance, value))
 
-    val = collectd.Values(plugin=metric_name)
-    val.type = type
+    val = collectd.Values()
+    val.plugin = plugin_name
+    val.type = type_name
+    if plugin_instance:
+        val.plugin_instance = plugin_instance
+    if type_instance:
+        val.type_instance = type_instance
+    if host:
+        val.host = host
     if date:
         val.time = date
-    val.type_instance = type_instance
     val.values = [value]
     val.dispatch()
 
@@ -207,6 +217,32 @@ def init_callback():
     config['util'] = OpenstackUtils(nova_client)
 
 
+def _naming(key, info):
+    global config
+    names = {
+        'plugin_name': '',
+        'plugin_instance': '',
+        'type_name': '',
+        'type_instance': ''
+    }
+    if find(key, 'volumes') >= 0:
+        m = config['_regex_volumes'].match(key)
+        if m:
+            # backend
+            names['plugin_instance'] = m.group(1)
+            names['type_name'] = m.group(2)
+            if m.group(3):
+                names['type_instance'] = m.group(3)
+    else:
+        # snapshot doesn't have backend
+        m = config['_regex_snapshot'].match(key)
+        if m:
+            names['type_name'] = m.group(1)
+            if m.group(2):
+                names['type_instance'] = m.group(2)
+    return names
+
+
 def read_callback(data=None):
     global config
     if 'util' not in config:
@@ -214,11 +250,15 @@ def read_callback(data=None):
     info = config['util'].get_stats(config['volume_type'])
     log_verbose(pformat(info))
     for key in info:
+        names = _naming(key, info)
         dispatch_value(key,
                        info[key],
-                       'gauge',
-                       config['metric_name'],
-                       config['util'].last_stats)
+                       names['type_name'],
+                       'cinder',
+                       config['util'].last_stats,
+                       names['type_instance'],
+                       names['plugin_instance'],
+                       'openstack')
 
 collectd.register_config(configure_callback)
 collectd.register_init(init_callback)
