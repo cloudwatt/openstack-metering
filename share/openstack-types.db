@@ -13,3 +13,7 @@ snapshots_count		value:GAUGE:0:U
 ## users is already taken and is limited to 65k
 accounts                value:GAUGE:0:U
 tenants                 value:GAUGE:0:U
+
+# neutron
+floatingips             total_ips_estimate:GAUGE:0:U, used:GAUGE:0:U
+       

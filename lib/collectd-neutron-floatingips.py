@@ -121,22 +121,29 @@ def log_error(msg):
     config['error'] = error
 
 
-def dispatch_value(key, value, type, metric_name, date=None,
-                   type_instance=None):
+def dispatch_value(value, type_name, plugin_name, date=None,
+                   type_instance=None, plugin_instance=None,
+                   host=None):
     """Dispatch a value"""
 
-    if not type_instance:
-        type_instance = key
+    log_verbose('Sending value: %s=%s' %
+                (host + '.' + plugin_name + '-' + plugin_instance +
+                 '.' + type_name + '-' + type_instance, value))
 
-    value = int(value)
-    log_verbose('Sending value: %s=%s' % (type_instance, value))
+    val = collectd.Values()
+    val.plugin = plugin_name
+    val.type = type_name
+    val.values = value
 
-    val = collectd.Values(plugin=metric_name)
-    val.type = type
+    if plugin_instance:
+        val.plugin_instance = plugin_instance
+    if type_instance:
+        val.type_instance = type_instance
+    if host:
+        val.host = host
     if date:
         val.time = date
-    val.type_instance = type_instance
-    val.values = [value]
+
     val.dispatch()
 
 
@@ -234,12 +241,13 @@ def read_callback(data=None):
     info = config['util'].get_stats()
     log_verbose(pformat(info))
     try:
-        for key in info:
-            dispatch_value(key,
-                           info[key],
-                           'gauge',
-                           config['metric_name'],
-                           config['util'].last_stats)
+        dispatch_value(info.values(),
+                       'floatingips',
+                       'neutron',
+                       config['util'].last_stats,
+                       '',
+                       '',
+                       'openstack')
         config['_token_error'] = 0
     except TypeError as e:
         # Not obvious but it means that the token is expired.  This is
