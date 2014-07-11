@@ -8,3 +8,8 @@ volumes_attached	value:GAUGE:0:U
 snapshots_size		value:GAUGE:0:U
 snapshots_status		value:GAUGE:0:U
 snapshots_count		value:GAUGE:0:U
+
+# keystone
+## users is already taken and is limited to 65k
+accounts                value:GAUGE:0:U
+tenants                 value:GAUGE:0:U

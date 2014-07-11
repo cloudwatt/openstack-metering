@@ -28,7 +28,7 @@ from keystoneclient.v2_0 import client
 from datetime import datetime
 from time import mktime
 from pprint import pformat
-
+from string import find
 
 plugin_name = 'collectd-keystone-stats'
 
@@ -76,22 +76,30 @@ def log_error(msg):
     raise(Exception(error))
 
 
-def dispatch_value(key, value, type, metric_name, date=None,
-                   type_instance=None):
+def dispatch_value(key, value, type_name, plugin_name, date=None,
+                   type_instance='', plugin_instance='',
+                   host=''):
     """Dispatch a value"""
 
-    if not type_instance:
-        type_instance = key
-
     value = int(value)
-    log_verbose('Sending value: %s=%s' % (type_instance, value))
+    log_verbose('Sending value: %s=%s' %
+                (host + '.' + plugin_name + '-' + plugin_instance +
+                 '.' + type_name + '-' + type_instance, value))
 
-    val = collectd.Values(plugin=metric_name)
-    val.type = type
+    val = collectd.Values()
+    val.plugin = plugin_name
+    val.type = type_name
+    val.values = [value]
+
+    if plugin_instance:
+        val.plugin_instance = plugin_instance
+    if type_instance:
+        val.type_instance = type_instance
+    if host:
+        val.host = host
     if date:
         val.time = date
-    val.type_instance = type_instance
-    val.values = [value]
+
     val.dispatch()
 
 
@@ -164,6 +172,21 @@ def init_callback():
     log_verbose('Got a valid connection to keystone API')
 
 
+def _naming(key, info):
+    global config
+    names = {
+        'plugin_name': '',
+        'plugin_instance': '',
+        'type_name': '',
+        'type_instance': ''
+    }
+    if find(key, 'users') >= 0:
+        names['type_name'] = 'accounts'
+    else:
+        names['type_name'] = 'tenants'
+    return names
+
+
 def read_callback(data=None):
     global config
     if 'util' not in config:
@@ -171,11 +194,15 @@ def read_callback(data=None):
     info = config['util'].get_stats()
     log_verbose(pformat(info))
     for key in info:
+        names = _naming(key, info)
         dispatch_value(key,
                        info[key],
-                       'gauge',
-                       config['metric_name'],
-                       config['util'].last_stats)
+                       names['type_name'],
+                       'keystone',
+                       config['util'].last_stats,
+                       '',
+                       '',
+                       'openstack')
 
 collectd.register_config(configure_callback)
 collectd.register_init(init_callback)
