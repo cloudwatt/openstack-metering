@@ -44,18 +44,44 @@ class OpenstackUtils:
         self.last_stats = int(mktime(datetime.now().timetuple()))
         hosts_by_aggregate = self._hosts_by_aggregate()
         for aggregate, hosts in hosts_by_aggregate.items():
-            stats[aggregate] = dict.fromkeys(['vcpus', 'vcpus_used', 'memory_mb', 'memory_mb_used', 'local_gb', 'local_gb_used', 'disk_available_least', 'running_vms'], 0)
+            stats[aggregate] = {
+                'disk': [0, 0, 0, 0],
+                'vcpus': [0, 0],
+                'instances': 0,
+                'memory': dict.fromkeys(['total',
+                                         'used',
+                                         'free'], 0),
+                'servers': [len(hosts), 0]
+            }
             for host in hosts:
                 stats[aggregate] = {
-                    'vcpus': stats[aggregate]['vcpus'] + host.vcpus,
-                    'vcpus_used': stats[aggregate]['vcpus_used'] + host.vcpus_used,
-                    'memory_mb': stats[aggregate]['memory_mb'] + host.memory_mb,
-                    'memory_mb_used': stats[aggregate]['memory_mb_used'] + host.memory_mb_used,
-                    'local_gb': stats[aggregate]['local_gb'] + host.local_gb,
-                    'local_gb_used': stats[aggregate]['local_gb_used'] + host.local_gb_used,
-                    'disk_available_least': stats[aggregate]['disk_available_least'] + host.disk_available_least,
-                    'running_vms': stats[aggregate]['running_vms'] + host.running_vms
+                    'instances': stats[aggregate]['instances'] +
+                    host.running_vms,
+                    'disk': [x[0] + x[1] for x in zip(
+                        stats[aggregate]['disk'], [
+                            host.local_gb,
+                            host.local_gb_used,
+                            host.free_disk_gb,
+                            host.disk_available_least,
+                        ]
+                    )],
+                    'memory': {
+                        'total': stats[aggregate]['memory']['total'] + host.memory_mb,
+                        'used':  stats[aggregate]['memory']['used'] + host.memory_mb_used,
+                        'free':  stats[aggregate]['memory']['free'] + host.free_ram_mb,
+                    },
+                    'vcpus': [x[0] + x[1] for x in zip(
+                        stats[aggregate]['vcpus'], [
+                            host.vcpus,
+                            host.vcpus_used]
+                    )],
+                    'servers': [x[0] + x[1] for x in zip(
+                        stats[aggregate]['servers'],
+                        [0, host.current_workload])]
                 }
+            if stats[aggregate]['servers'][0] > 0:
+                stats[aggregate]['servers'][1]  = stats[aggregate]['servers'][1] // \
+                                                  stats[aggregate]['servers'][0]
         return stats
 
     def _hosts_by_aggregate(self):
@@ -112,23 +138,40 @@ def log_error(msg):
     raise(Exception(error))
 
 
-def dispatch_value(key, value, type, metric_name, date=None,
-                   type_instance=None):
+def dispatch_value(value, plugin_name, date=None, type_name='',
+                   type_instance='', plugin_instance='',
+                   host=''):
     """Dispatch a value"""
 
-    if not type_instance:
-        type_instance = key
+    log_verbose('Sending value: %s=%s' %
+                (host + '.' + plugin_name + '-' + plugin_instance +
+                 '.' + type_name + '-' + type_instance, value))
 
-    value = int(value)
-    log_verbose('Sending value: %s=%s' % (type_instance, value))
+    val = collectd.Values()
+    val.plugin = plugin_name
 
-    val = collectd.Values(plugin=metric_name)
-    val.type = type
+    if plugin_instance:
+        val.plugin_instance = plugin_instance
+    if type_name:
+        val.type = type_name
+    if type_instance:
+        val.type_instance = type_instance
+    if host:
+        val.host = host
     if date:
         val.time = date
-    val.type_instance = type_instance
-    val.values = [value]
-    val.dispatch()
+
+    if type(value) == dict:
+        for type_inst in value:
+            val.type_instance = type_inst
+            val.values = [int(value[type_inst])]
+            val.dispatch()
+    elif type(value) == list:
+        val.values = value
+        val.dispatch()
+    else:
+        val.values = [int(value)]
+        val.dispatch()
 
 
 def configure_callback(conf):
@@ -206,12 +249,13 @@ def read_callback(data=None):
     log_verbose(pformat(info))
     for aggregate in info:
         for key in info[aggregate]:
-            dispatch_value(key,
-                           info[aggregate][key],
-                           'gauge',
-                           config['metric_name'] + '.' + aggregate,
-                           config['util'].last_stats)
-
+            dispatch_value(info[aggregate][key],
+                           'hypervisors',
+                           config['util'].last_stats,
+                           key,
+                           '',
+                           aggregate,
+                           'openstack')
 
 plugin_name = 'collectd-nova-aggregate'
 
