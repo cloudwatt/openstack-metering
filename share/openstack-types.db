@@ -17,3 +17,9 @@ tenants                 value:GAUGE:0:U
 # neutron
 floatingips             total_ips_estimate:GAUGE:0:U, used:GAUGE:0:U
        
+# nova hypervisor
+servers                 count:GAUGE:0:U, load:GAUGE:0:U
+disk                    local:GAUGE:0:U, local_used:GAUGE:0:U, free:GAUGE:0:U, disk_available_least:GAUGE:0:U
+#memory                 total:GAUGE:0:U, free:GAUGE:0:U, used:GAUGE:0:U
+instances               value:GAUGE:0:U
+vcpus                   total:GAUGE:0:U, used:GAUGE:0:U

@@ -37,7 +37,17 @@ class OpenstackUtils:
 
     def get_stats(self):
         self.last_stats = int(mktime(datetime.now().timetuple()))
-        return self.nova_client.hypervisors.statistics()._info
+        data = self.nova_client.hypervisors.statistics()._info
+        return {
+            'servers': [data['count'], data['current_workload']],
+            'disk': [data['local_gb'], data['local_gb_used'],
+                     data['free_disk_gb'], data['disk_available_least']],
+            'memory': {'total': data['memory_mb'],
+                       'used': data['memory_mb_used'],
+                       'free': data['free_ram_mb']},
+            'instances': [data['running_vms']],
+            'vcpus': [data['vcpus'], data['vcpus_used']]
+        }
 
 # NOTE: This version is grepped from the Makefile, so don't change the
 # format of this line.
@@ -66,23 +76,40 @@ def log_error(msg):
     raise(Exception(error))
 
 
-def dispatch_value(key, value, type, metric_name, date=None,
-                   type_instance=None):
+def dispatch_value(value, plugin_name, date=None, type_name='',
+                   type_instance='', plugin_instance='',
+                   host=''):
     """Dispatch a value"""
 
-    if not type_instance:
-        type_instance = key
+    log_verbose('Sending value: %s=%s' %
+                (host + '.' + plugin_name + '-' + plugin_instance +
+                 '.' + type_name + '-' + type_instance, value))
 
-    value = int(value)
-    log_verbose('Sending value: %s=%s' % (type_instance, value))
+    val = collectd.Values()
+    val.plugin = plugin_name
 
-    val = collectd.Values(plugin=metric_name)
-    val.type = type
+    if plugin_instance:
+        val.plugin_instance = plugin_instance
+    if type_name:
+        val.type = type_name
+    if type_instance:
+        val.type_instance = type_instance
+    if host:
+        val.host = host
     if date:
         val.time = date
-    val.type_instance = type_instance
-    val.values = [value]
-    val.dispatch()
+
+    if type(value) == dict:
+        for type_inst in value:
+            val.type_instance = type_inst
+            val.values = [int(value[type_inst])]
+            val.dispatch()
+    elif type(value) == list:
+        val.values = value
+        val.dispatch()
+    else:
+        val.values = int(value)
+        val.dispatch()
 
 
 def configure_callback(conf):
@@ -159,11 +186,13 @@ def read_callback(data=None):
     info = config['util'].get_stats()
     log_verbose(pformat(info))
     for key in info:
-        dispatch_value(key,
-                       info[key],
-                       'gauge',
-                       config['metric_name'],
-                       config['util'].last_stats)
+        dispatch_value(info[key],
+                       'hypervisors',
+                       config['util'].last_stats,
+                       key,
+                       '',
+                       '',
+                       'openstack')
 
 
 plugin_name = 'collectd-nova-hypervisor-stats'
