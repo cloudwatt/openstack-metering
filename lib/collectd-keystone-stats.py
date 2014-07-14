@@ -3,7 +3,7 @@
 #
 # Collectd plugin for graphing nova hypervisor-stats
 #
-# Copyright © 2012-2014 eNovance <licensing@enovance.com>
+# Copyright © 2014 eNovance <licensing@enovance.com>
 #
 # Authors:
 #   Sofer Athlan-Guyot <sofer.athlan@enovance.com>
