@@ -90,8 +90,6 @@ class OpenstackUtils:
             total_ip += ips_number
         return total_ip
 
-# NOTE: This version is grepped from the Makefile, so don't change the
-# format of this line.
 version = '0.1.0'
 
 config = {
