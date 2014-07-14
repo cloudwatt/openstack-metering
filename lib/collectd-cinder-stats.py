@@ -29,7 +29,6 @@ from datetime import datetime
 from time import mktime
 from pprint import pformat
 from string import find
-import re
 
 plugin_name = 'collectd-cinder-stats'
 
@@ -43,8 +42,6 @@ config = {
     'error': None,
     'volume_type': None,
     'metric_name': 'openstack.cinder.stats',
-    '_regex_volumes': re.compile('([^.]+)\.([^.]+)(?:\.(.*))?'),
-    '_regex_snapshot': re.compile('([^.]+)(?:\.(.*))?')
 }
 
 
@@ -56,9 +53,11 @@ class OpenstackUtils:
         self.stats = {}
 
     def _set_stats(self, cinder, meth):
-        for keys in ['_count', '_size', '_status', '_attached', '_bootable']:
+        properties = ['count', 'size', 'status', 'attached', 'bootable']
+        for key in properties:
+            volume_type = ''
             if find(meth, 'snapshots') >= 0:
-                if keys in ['_attached', '_bootable']:
+                if key in ['attached', 'bootable']:
                     continue
             if hasattr(cinder, 'volume_type'):
                 # TODO: "None" type are all the volumes before the
@@ -66,25 +65,30 @@ class OpenstackUtils:
                 # them.  Maybe add a DefaultBackend option to the
                 # script.  Or Just add the proper property to the
                 # volume.
-                dyn_key = cinder.volume_type + '.' + meth + keys
+
+                volume_type = cinder.volume_type
             else:
-                dyn_key = meth + keys
+                volume_type = None
 
-            if find(keys, 'status') >= 0:
-                dyn_key = dyn_key + '.' + cinder.status
+            if volume_type not in self.stats:
+                self.stats[volume_type] = {meth: {}}
 
-            if dyn_key not in self.stats:
-                self.stats[dyn_key] = 0
-            if find(keys, 'size') >= 0:
-                self.stats[dyn_key] += cinder.size
-            elif find(keys, 'attached') >= 0:
-                self.stats[dyn_key] += len(cinder.attachments)
-            elif find(keys, 'boot') >= 0:
+            if find(key, 'status') >= 0:
+                key = 'status_' + cinder.status
+
+            if key not in self.stats[volume_type][meth]:
+                self.stats[volume_type][meth][key] = 0
+
+            if find(key, 'size') >= 0:
+                self.stats[volume_type][meth][key] += cinder.size
+            elif find(key, 'attached') >= 0:
+                self.stats[volume_type][meth][key] += len(cinder.attachments)
+            elif find(key, 'boot') >= 0:
                 if cinder.bootable and \
                    cinder.bootable not in ['false', 'False']:
-                    self.stats[dyn_key] += 1
+                    self.stats[volume_type][meth][key] += 1
             else:
-                self.stats[dyn_key] += 1
+                self.stats[volume_type][meth][key] += 1
 
     def get_stats(self, volume_type):
         self.stats = {}
@@ -120,30 +124,41 @@ def log_error(msg):
     raise(Exception(error))
 
 
-def dispatch_value(key, value, type_name, plugin_name, date=None,
-                   type_instance=None, plugin_instance=None,
-                   host=None):
-    """Dispatch a value """
+def dispatch_value(value, plugin_name, date=None, type_name='',
+                   type_instance='', plugin_instance='',
+                   host=''):
+    """Dispatch a value"""
     # host "/" plugin ["-" plugin instance] "/" type ["-" type instance]
 
-    value = int(value)
     log_verbose('Sending value: %s=%s' %
-                (host + '.' + plugin_name + '-' + plugin_instance +
+                (host + '.' + plugin_name + '-' + str(plugin_instance) +
                  '.' + type_name + '-' + type_instance, value))
 
     val = collectd.Values()
     val.plugin = plugin_name
-    val.type = type_name
+
     if plugin_instance:
         val.plugin_instance = plugin_instance
+    if type_name:
+        val.type = type_name
     if type_instance:
         val.type_instance = type_instance
     if host:
         val.host = host
     if date:
         val.time = date
-    val.values = [value]
-    val.dispatch()
+
+    if type(value) == dict:
+        for type_inst in value:
+            val.type_instance = type_inst
+            val.values = [int(value[type_inst])]
+            val.dispatch()
+    elif type(value) == list:
+        val.values = value
+        val.dispatch()
+    else:
+        val.values = [int(value)]
+        val.dispatch()
 
 
 def configure_callback(conf):
@@ -217,48 +232,23 @@ def init_callback():
     config['util'] = OpenstackUtils(nova_client)
 
 
-def _naming(key, info):
-    global config
-    names = {
-        'plugin_name': '',
-        'plugin_instance': '',
-        'type_name': '',
-        'type_instance': ''
-    }
-    if find(key, 'volumes') >= 0:
-        m = config['_regex_volumes'].match(key)
-        if m:
-            # backend
-            names['plugin_instance'] = m.group(1)
-            names['type_name'] = m.group(2)
-            if m.group(3):
-                names['type_instance'] = m.group(3)
-    else:
-        # snapshot doesn't have backend
-        m = config['_regex_snapshot'].match(key)
-        if m:
-            names['type_name'] = m.group(1)
-            if m.group(2):
-                names['type_instance'] = m.group(2)
-    return names
-
-
 def read_callback(data=None):
     global config
     if 'util' not in config:
         log_error("Problem during initialization, fix and restart collectd.")
     info = config['util'].get_stats(config['volume_type'])
     log_verbose(pformat(info))
-    for key in info:
-        names = _naming(key, info)
-        dispatch_value(key,
-                       info[key],
-                       names['type_name'],
-                       'cinder',
-                       config['util'].last_stats,
-                       names['type_instance'],
-                       names['plugin_instance'],
-                       'openstack')
+    # plugin instance
+    for plugin_instance in info:
+        # instance name
+        for type_name in info[plugin_instance]:
+            dispatch_value(info[plugin_instance][type_name],
+                           'cinder',
+                           config['util'].last_stats,
+                           type_name,
+                           '',
+                           plugin_instance,
+                           'openstack')
 
 collectd.register_config(configure_callback)
 collectd.register_init(init_callback)
