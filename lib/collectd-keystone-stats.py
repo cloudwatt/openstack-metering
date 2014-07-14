@@ -41,7 +41,6 @@ config = {
     'verbose_logging': False,
     'error': None,
     'volume_type': None,
-    'metric_name': 'openstack.keystone.stats',
 }
 
 
@@ -119,8 +118,6 @@ def configure_callback(conf):
             config['endpoint_type'] = node.values[0]
         elif node.key == 'Verbose':
             config['verbose_logging'] = node.values[0]
-        elif node.key == 'MetricName':
-            config['metric_name'] = node.values[0]
         else:
             collectd.warning('%s plugin: Unknown config key: %s.'
                              % (plugin_name, node.key))
@@ -142,9 +139,8 @@ def configure_callback(conf):
          config['username'],
          config['password'],
          config['tenant']) +
-        " endpoint_type=%s, metric_name=%s" %
-        (config['endpoint_type'],
-         config['metric_name'])
+        " endpoint_type=%s" %
+        (config['endpoint_type'])
     )
 
 

@@ -99,7 +99,6 @@ config = {
     'verbose_logging': False,
     'public_network': 'public',
     'error': None,
-    'metric_name': 'openstack.neutron.floating_ips',
     '_token_error': 0
 }
 
@@ -163,8 +162,6 @@ def configure_callback(conf):
             config['endpoint_type'] = node.values[0]
         elif node.key == 'Verbose':
             config['verbose_logging'] = bool(node.values[0])
-        elif node.key == 'MetricName':
-            config['metric_name'] = node.values[0]
         elif node.key == 'PublicNetwork':
             config['public_network'] = node.values[0]
         else:
@@ -188,9 +185,8 @@ def configure_callback(conf):
          config['username'],
          config['password'],
          config['tenant']) +
-        " endpoint_type=%s, metric_name=%s" %
-        (config['endpoint_type'],
-         config['metric_name']) +
+        " endpoint_type=%s" %
+        (config['endpoint_type']) +
         " public_network=%s" % config['public_network']
     )
 
