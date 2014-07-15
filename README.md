@@ -195,6 +195,40 @@ The following parameters are optional:
 * `EndpointType` - The type of the endpoint.  By default "internalURL".
 * `Verbose` - Add some verbosity, visible in the collectd logs.
 
+## collectd-instances-stats ##
+
+Get the count of all instances by status as defined [there](http://docs.openstack.org/api/openstack-compute/2/content/List_Servers-d1e2078.html)
+
+Add the following to your collectd config and restart collectd.
+
+     <LoadPlugin "python">
+         Globals true
+     </LoadPlugin>
+    
+     <Plugin "python">
+     ModulePath "/usr/local/lib"
+    
+     Import "collectd-instances-stats"
+
+     <Module "collectd-instances-stats">
+         AuthURL   "http://myopenstack.cloud.home:5000/v2.0"
+         Username  "admin"
+         Password  "hardhard"
+         Tenant    "admin"
+     </Module>
+     </Plugin>
+
+The following parameters are required:
+
+* `AuthURL` - The identity service for openstack;
+* `Username` - The user to use to log in (must have admin role);
+* `Password` - Well .... the password;
+* `Tenant` - Tenant to use
+
+The following parameters are optional:
+* `EndpointType` - The type of the endpoint.  By default "internalURL".
+* `Verbose` - Add some verbosity, visible in the collectd logs.
+
 # Debug #
 
 A litle utility is given to run the plugin on the command line in the
