@@ -1,13 +1,6 @@
 # cinder
-volumes_size		value:GAUGE:0:U
-volumes_status		value:GAUGE:0:U
-volumes_count		value:GAUGE:0:U
-volumes_bootable	value:GAUGE:0:U
-volumes_attached	value:GAUGE:0:U
-
-snapshots_size		value:GAUGE:0:U
-snapshots_status		value:GAUGE:0:U
-snapshots_count		value:GAUGE:0:U
+volumes			value:GAUGE:0:U
+snapshots		value:GAUGE:0:U
 
 # keystone
 ## users is already taken and is limited to 65k
@@ -20,6 +13,5 @@ floatingips             total_ips_estimate:GAUGE:0:U, used:GAUGE:0:U
 # nova hypervisor
 servers                 count:GAUGE:0:U, load:GAUGE:0:U
 disk                    local:GAUGE:0:U, local_used:GAUGE:0:U, free:GAUGE:0:U, disk_available_least:GAUGE:0:U
-#memory                 total:GAUGE:0:U, free:GAUGE:0:U, used:GAUGE:0:U
 instances               value:GAUGE:0:U
 vcpus                   total:GAUGE:0:U, used:GAUGE:0:U
