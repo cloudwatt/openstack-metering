@@ -40,6 +40,11 @@ Add the following to your collectd config and restart collectd.
             Username  "admin"
             Password  "hardhard"
             Tenant    "admin"
+     		 <Overcommit>
+	     	     Vcpus 16
+		    	 Memory 1.5
+		     </Overcommit>
+			
      </Module>
      </Plugin>
 
@@ -53,6 +58,9 @@ The following parameters are required:
 The following parameters are optional:
 * `EndpointType` - The type of the endpoint.  By default "internalURL".
 * `Verbose` - Add some verbosity, visible in the collectd logs.
+
+* `Overcommit` - Take the name of the aggregate as parameter and the
+`Vcpus` and `Memory` parameter as child node.
 
 ## collectd-neutron-floatingips ##
 
@@ -163,7 +171,8 @@ The following parameters are optional:
 ## collectd-nova-aggregate ##
 
 Graph the equivalent of nova hypervisor-stats by splitted by
-aggregate.  It requires admin role.
+aggregate.  It requires admin role.  Overcommit for cpus and memory
+can be given for each aggregate.
 
 Add the following to your collectd config and restart collectd.
 
@@ -181,6 +190,10 @@ Add the following to your collectd config and restart collectd.
          Username  "admin"
          Password  "hardhard"
          Tenant    "admin"
+		 <Overcommit "small">
+		     Vcpus 30
+			 Memory 2.5
+		 </Overcommit>
      </Module>
      </Plugin>
 
@@ -194,6 +207,9 @@ The following parameters are required:
 The following parameters are optional:
 * `EndpointType` - The type of the endpoint.  By default "internalURL".
 * `Verbose` - Add some verbosity, visible in the collectd logs.
+
+* `Overcommit` - Take the name of the aggregate as parameter and the
+`Vcpus` and `Memory` parameter as child node.
 
 ## collectd-instances-stats ##
 

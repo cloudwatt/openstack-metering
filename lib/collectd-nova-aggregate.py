@@ -44,9 +44,16 @@ class OpenstackUtils:
         self.last_stats = int(mktime(datetime.now().timetuple()))
         hosts_by_aggregate = self._hosts_by_aggregate()
         for aggregate, hosts in hosts_by_aggregate.items():
+            vcpu_multiplier = 1
+            memory_multiplier = 1
+            if 'overcommit' in config and aggregate in config['overcommit']:
+                vcpu_multiplier = config['overcommit'][aggregate]['vcpus']
+                memory_multiplier = config['overcommit'][aggregate]['memory']
             stats[aggregate] = {
                 'disk': [0, 0, 0, 0],
-                'vcpus': [0, 0],
+                'vcpus': dict.fromkeys(['total',
+                                        'used',
+                                        'real'], 0),
                 'instances': 0,
                 'memory': dict.fromkeys(['total',
                                          'used',
@@ -66,15 +73,16 @@ class OpenstackUtils:
                         ]
                     )],
                     'memory': {
-                        'total': stats[aggregate]['memory']['total'] + host.memory_mb,
+                        'total': stats[aggregate]['memory']['total'] + host.memory_mb * memory_multiplier,
+                        'real': stats[aggregate]['memory']['total'] + host.memory_mb,
                         'used':  stats[aggregate]['memory']['used'] + host.memory_mb_used,
                         'free':  stats[aggregate]['memory']['free'] + host.free_ram_mb,
                     },
-                    'vcpus': [x[0] + x[1] for x in zip(
-                        stats[aggregate]['vcpus'], [
-                            host.vcpus,
-                            host.vcpus_used]
-                    )],
+                    'vcpus': {
+                        'total': stats[aggregate]['vcpus']['total'] + host.vcpus * vcpu_multiplier,
+                        'real': stats[aggregate]['vcpus']['real'] + host.vcpus,
+                        'used': stats[aggregate]['vcpus']['used'] + host.vcpus_used,
+                    },
                     'servers': [x[0] + x[1] for x in zip(
                         stats[aggregate]['servers'],
                         [0, host.current_workload])]
@@ -183,6 +191,26 @@ def configure_callback(conf):
             config['password'] = node.values[0]
         elif node.key == 'Tenant':
             config['tenant'] = node.values[0]
+        elif node.key == 'EndpointType':
+            config['endpoint_type'] = node.values[0]
+        elif node.key == 'Overcommit':
+            for aggregate in node.values:
+                config['overcommit'] = {aggregate: {}}
+                for nd in node.children:
+                    if type(nd.values[0]) != float:
+                        log_error("You must pass a float to %s" % aggregate + '-vcpus,memory')
+                    if nd.key == 'Vcpus':
+                        config['overcommit'][aggregate]['vcpus'] = nd.values[0]
+                    elif nd.key == 'Memory':
+                        config['overcommit'][aggregate]['memory'] = nd.values[0]
+                    else:
+                        collectd.warning(
+                            '%s plugin: Unknown subconfig key for Overcommit: %s'
+                            % (plugin_name, nd.key))
+                for required_param in ['vcpus', 'memory']:
+                    if required_param not in config['overcommit'][aggregate]:
+                        log_error('%s not defined in %s'
+                                  % (required_param, aggregate))
         elif node.key == 'EndpointType':
             config['endpoint_type'] = node.values[0]
         elif node.key == 'Verbose':
