@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 import argparse
-from pprint import pprint
 import datetime
 
 parser = argparse.ArgumentParser(
