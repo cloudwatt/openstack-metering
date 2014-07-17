@@ -108,7 +108,7 @@ class OpenstackUtils:
         if name in self.hypervisors:
             return self.hypervisors[name]
         else:
-            raise exceptions.NotFound
+            raise(exceptions.NotFound("'%s' is not on hypervisors list" % name))
 
 
 version = '0.1.0'
