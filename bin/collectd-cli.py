@@ -83,13 +83,23 @@ class Node:
 
 class Values:
     def __init__(self, **args):
-        self.type = type
+        self.host = ""
+        self.plugin = ""
+        self.plugin_instance = ""
+        self.type = ""
+        self.type_instance = ""
         self.time = datetime.utcnow()
-        self.type_instance = None
         self.values = []
 
     def __str__(self):
-        return "%s: %s = %s" % (self.time, self.type_instance, self.values)
+        return "%s: %s.%s-%s.%s-%s = %s" % (
+            self.time,
+            self.host,
+            self.plugin,
+            self.plugin_instance,
+            self.type,
+            self.type_instance,
+            self.values)
 
     def dispatch(self):
         print(self)
