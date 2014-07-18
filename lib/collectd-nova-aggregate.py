@@ -98,7 +98,7 @@ class OpenstackUtils:
             hba[aggregate.name] = []
             for hypervisor in aggregate.hosts:
                 try:
-                    hba[aggregate.name].append(self._search_hypervisor_by_name(aggregate.name))
+                    hba[aggregate.name].append(self._search_hypervisor_by_name(hypervisor))
                 except exceptions.NotFound as e:
                     log_warning("Cannot find %s hypervisor: %s" %
                                 (hypervisor, e))
