@@ -51,7 +51,9 @@ class OpenstackUtils:
             'memory': {'total': data['memory_mb'] * memory_multiplier,
                        'real':  data['memory_mb'],
                        'used': data['memory_mb_used'],
-                       'free': data['free_ram_mb']},
+                       'free_real': data['free_ram_mb'],
+                       'free': (data['memory_mb'] * memory_multiplier -
+                                data['memory_mb_used'])},
             'instances': [data['running_vms']],
             'vcpus': {
                 'total': data['vcpus'] * vcpu_multiplier,

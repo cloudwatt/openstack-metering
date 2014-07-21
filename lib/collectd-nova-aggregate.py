@@ -75,7 +75,11 @@ class OpenstackUtils:
                     'memory': {
                         'total': stats[aggregate]['memory']['total'] + host.memory_mb * memory_multiplier,
                         'real': stats[aggregate]['memory']['total'] + host.memory_mb,
-                        'used':  stats[aggregate]['memory']['used'] + host.memory_mb_used,
+                        'used': (stats[aggregate]['memory']['total']
+                                 + host.memory_mb * memory_multiplier
+                                 - stats[aggregate]['memory']['used']
+                                 + host.memory_mb_used),
+                        'used_real':  stats[aggregate]['memory']['used'] + host.memory_mb_used,
                         'free':  stats[aggregate]['memory']['free'] + host.free_ram_mb,
                     },
                     'vcpus': {
