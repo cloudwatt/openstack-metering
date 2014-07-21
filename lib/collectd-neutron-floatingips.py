@@ -97,7 +97,6 @@ config = {
     'verbose_logging': False,
     'public_network': 'public',
     'error': None,
-    '_token_error': 0
 }
 
 
@@ -112,10 +111,8 @@ def log_warning(msg):
 
 
 def log_error(msg):
-    global config
     error = "%s [error]: %s" % (plugin_name, msg)
-    collectd.error(error)
-    config['error'] = error
+    raise(Exception(error))
 
 
 def dispatch_value(value, type_name, plugin_name, date=None,
@@ -212,7 +209,7 @@ def connect(config):
     if config['public_network'] and config['public_network'] != 'none':
         conf['public_network'] = config['public_network']
     config['util'] = OpenstackUtils(**conf)
-    config['util'].check_connection()
+    config['util'].check_connection(True)
 
 
 def init_callback():
@@ -224,17 +221,13 @@ def init_callback():
 
 def read_callback(data=None):
     global config
-    if config['error']:
-        log_warning("Got a error during initialization.  " +
-                    "Fix it and restart collectd")
-        return
     if 'util' not in config:
-        if not config['util'].connection_done:
-            log_warning("Connection has not been done. Exiting.")
-            return
-    info = config['util'].get_stats()
-    log_verbose(pformat(info))
+        log_warning("Connection has not been done. Retrying")
+        connect(config)
+
     try:
+        info = config['util'].get_stats()
+        log_verbose(pformat(info))
         dispatch_value(info.values(),
                        'floatingips',
                        'neutron',
@@ -242,18 +235,11 @@ def read_callback(data=None):
                        '',
                        '',
                        'openstack')
-        config['_token_error'] = 0
-    except TypeError as e:
-        # Not obvious but it means that the token is expired.  This is
-        # a quick hack to fix it.
-        config['_token_error'] += 1
-        log_warning("Token has expired (%s)" % e)
-        if config['_token_error'] < 10:
-            connect(config)
-        else:
-            # too much retry, giving up
-            log_error(
-                "Problem with the plugin.  Tried to reconnect but failed" % e)
+    except Exception as e:
+        log_warning(
+            "Problem while reading, trying to authenticate (%s)" % e)
+        log_warning("Trying to reconnect (%s)" % e)
+        connect(config)
 
 collectd.register_config(configure_callback)
 collectd.register_init(init_callback)
