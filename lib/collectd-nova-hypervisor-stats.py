@@ -40,7 +40,7 @@ class OpenstackUtils:
         data = self.nova_client.hypervisors.statistics()._info
         vcpu_multiplier = 1
         memory_multiplier = 1
-        if 'overcommit' in config and aggregate in config['overcommit']:
+        if 'overcommit' in config:
                 vcpu_multiplier = config['overcommit']['vcpus']
                 memory_multiplier = config['overcommit']['memory']
 
@@ -48,12 +48,13 @@ class OpenstackUtils:
             'servers': [data['count'], data['current_workload']],
             'disk': [data['local_gb'], data['local_gb_used'],
                      data['free_disk_gb'], data['disk_available_least']],
-            'memory': {'total': data['memory_mb'],
+            'memory': {'total': data['memory_mb'] * memory_multiplier,
+                       'real':  data['memory_mb'],
                        'used': data['memory_mb_used'],
                        'free': data['free_ram_mb']},
             'instances': [data['running_vms']],
             'vcpus': {
-                'total': data['vcpus'],
+                'total': data['vcpus'] * vcpu_multiplier,
                 'used': data['vcpus_used'],
                 'real': data['vcpus']
             }}
@@ -135,6 +136,7 @@ def configure_callback(conf):
         elif node.key == 'Verbose':
             config['verbose_logging'] = node.values[0]
         elif node.key == 'Overcommit':
+            config['overcommit'] = {}
             for nd in node.children:
                 if type(nd.values[0]) != float:
                     log_error("You must pass a float to Vcpus,Memory")
@@ -147,8 +149,8 @@ def configure_callback(conf):
                                      % (plugin_name, nd.key))
             for required_param in ['vcpus', 'memory']:
                 if required_param not in config['overcommit']:
-                    log_error('%s not defined in %s'
-                              % (required_param, aggregate))
+                    log_error('%s not defined for Overcommit'
+                              % (required_param))
         else:
             collectd.warning('%s plugin: Unknown config key: %s.'
                              % (plugin_name, node.key))
