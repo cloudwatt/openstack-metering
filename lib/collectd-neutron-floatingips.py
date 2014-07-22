@@ -188,20 +188,20 @@ def configure_callback(conf):
 
 def connect(config):
     try:
-        nova_client = client.Client(
+        keystone_client = client.Client(
             username=config['username'],
             tenant_name=config['tenant'],
             password=config['password'],
             auth_url=config['auth_url'],
         )
-        nova_client.authenticate()
-        if not nova_client.tenants.list():
+        keystone_client.authenticate()
+        if not keystone_client.tenants.list():
             log_error("The user must have the admin role to work.")
     except Exception as e:
         log_error("Authentication error: %s\n" % e)
-    endpoint = nova_client.service_catalog.get_endpoints(
+    endpoint = keystone_client.service_catalog.get_endpoints(
         'network')['network'][0][config['endpoint_type']]
-    token = nova_client.service_catalog.get_token()['id']
+    token = keystone_client.service_catalog.get_token()['id']
     neutron_client = neutron.Client('2.0',
                                     endpoint_url=endpoint,
                                     token=token)

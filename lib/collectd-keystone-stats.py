@@ -43,8 +43,8 @@ config = {
 
 
 class OpenstackUtils:
-    def __init__(self, nova_client):
-        self.nova_client = nova_client
+    def __init__(self, keystone_client):
+        self.keystone_client = keystone_client
         self.last_stats = None
         self.connection_done = None
         self.stats = {}
@@ -52,8 +52,8 @@ class OpenstackUtils:
     def get_stats(self):
         stats = {}
         self.last_stats = int(mktime(datetime.now().timetuple()))
-        stats['users'] = len(self.nova_client.users.list())
-        stats['tenants'] = len(self.nova_client.tenants.list())
+        stats['users'] = len(self.keystone_client.users.list())
+        stats['tenants'] = len(self.keystone_client.tenants.list())
 
         return stats
 
@@ -144,18 +144,18 @@ def configure_callback(conf):
 
 def connect(config):
     try:
-        nova_client = client.Client(
+        keystone_client = client.Client(
             username=config['username'],
             tenant_name=config['tenant'],
             password=config['password'],
             auth_url=config['auth_url'],
         )
-        nova_client.authenticate()
-        if not nova_client.tenants.list():
+        keystone_client.authenticate()
+        if not keystone_client.tenants.list():
             log_error("The user must have the admin role.")
     except Exception as e:
         log_error("Connection failed: %s" % e)
-    return nova_client
+    return keystone_client
 
 
 def init_callback():

@@ -43,8 +43,8 @@ config = {
 
 
 class OpenstackUtils:
-    def __init__(self, nova_client):
-        self.nova_client = nova_client
+    def __init__(self, cinder_client):
+        self.cinder_client = cinder_client
         self.last_stats = None
         self.connection_done = None
         self.stats = {}
@@ -90,8 +90,8 @@ class OpenstackUtils:
     def get_stats(self, volume_type):
         self.stats = {}
         self.last_stats = int(mktime(datetime.now().timetuple()))
-        informations = {'volumes': self.nova_client.volumes.list,
-                        'snapshots': self.nova_client.volume_snapshots.list}
+        informations = {'volumes': self.cinder_client.volumes.list,
+                        'snapshots': self.cinder_client.volume_snapshots.list}
         for meth in informations:
             # this seems to be one connection per tenant.
             data = informations[meth](search_opts={'all_tenants': 1})
@@ -206,24 +206,24 @@ def connect(config):
     # this shouldn't raise any exception as no connection is done when
     # creating the object.  But It may change, so I catch everything.
     try:
-        nova_client = Client('1',
-                             username=config['username'],
-                             project_id=config['tenant'],
-                             api_key=config['password'],
-                             auth_url=config['auth_url'],
-                             endpoint_type=config['endpoint_type'])
-        nova_client.authenticate()
+        cinder_client = Client('1',
+                               username=config['username'],
+                               project_id=config['tenant'],
+                               api_key=config['password'],
+                               auth_url=config['auth_url'],
+                               endpoint_type=config['endpoint_type'])
+        cinder_client.authenticate()
     except Exception as e:
         log_error("Connection failed: %s" % e)
-    return nova_client
+    return cinder_client
 
 
 def init_callback():
     """Initialization block"""
     global config
-    nova_client = connect(config)
+    cinder_client = connect(config)
     log_verbose('Got a valid connection to cinder API')
-    config['util'] = OpenstackUtils(nova_client)
+    config['util'] = OpenstackUtils(cinder_client)
 
 
 def read_callback(data=None):
