@@ -28,6 +28,8 @@ from novaclient.client import Client
 from datetime import datetime
 from time import mktime
 from pprint import pformat
+import Queue
+import threading
 
 plugin_name = 'collectd-instances-stats'
 
@@ -37,6 +39,29 @@ config = {
     'endpoint_type': "internalURL",
     'verbose_logging': False,
 }
+
+queue = Queue.Queue()
+queue_out = Queue.Queue()
+
+
+class FetchInfo(threading.Thread):
+    def __init__(self, nova_util, queue, queue_out):
+        threading.Thread.__init__(self)
+        self.nova_util = nova_util
+        self.queue = queue
+        self.queue_out = queue_out
+
+    def run(self):
+        while True:
+            status = self.queue.get()
+            nova_util = self.nova_util
+            self.queue_out.put({status: len(
+                nova_util.nova_client.servers.list(
+                    search_opts={'all_tenants': 1,
+                                 'status': status},
+                    detailed=False,
+                ))})
+            self.queue.task_done()
 
 
 class OpenstackUtils:
@@ -67,11 +92,16 @@ class OpenstackUtils:
     def get_stats(self):
         self.stats = {}
         self.last_stats = int(mktime(datetime.now().timetuple()))
+        for _ in range(len(OpenstackUtils.STATUS)):
+            task = FetchInfo(self, queue, queue_out)
+            task.setDaemon(True)
+            task.start()
         for status in OpenstackUtils.STATUS:
-            self.stats[status.lower()] = len(self.nova_client.servers.list(
-                search_opts={'all_tenants': 1, 'status': status}
-            ))
-
+            queue.put(status.lower())
+        queue.join()
+        for _ in range(len(OpenstackUtils.STATUS)):
+            data = queue_out.get()
+            self.stats[data.keys()[0]] = data.values()[0]
         return self.stats
 
 
