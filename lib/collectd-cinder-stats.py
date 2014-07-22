@@ -37,8 +37,6 @@ version = '0.1.0'
 config = {
     'endpoint_type': "internalURL",
     'verbose_logging': False,
-    'error': None,
-    'volume_type': None,
 }
 
 
@@ -87,7 +85,7 @@ class OpenstackUtils:
             else:
                 self.stats[volume_type][meth][key] += 1
 
-    def get_stats(self, volume_type):
+    def get_stats(self):
         self.stats = {}
         self.last_stats = int(mktime(datetime.now().timetuple()))
         informations = {'volumes': self.cinder_client.volumes.list,
@@ -174,8 +172,6 @@ def configure_callback(conf):
             config['endpoint_type'] = node.values[0]
         elif node.key == 'Verbose':
             config['verbose_logging'] = node.values[0]
-        elif node.key == 'VolumeType':
-            config['volume_type'] = node.values[0]
         else:
             collectd.warning('%s plugin: Unknown config key: %s.'
                              % (plugin_name, node.key))
@@ -230,7 +226,7 @@ def read_callback(data=None):
     global config
     if 'util' not in config:
         log_error("Problem during initialization, fix and restart collectd.")
-    info = config['util'].get_stats(config['volume_type'])
+    info = config['util'].get_stats()
     log_verbose(pformat(info))
     # plugin instance
     for plugin_instance in info:

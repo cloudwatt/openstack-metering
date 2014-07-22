@@ -37,8 +37,6 @@ version = '0.1.0'
 config = {
     'endpoint_type': "internalURL",
     'verbose_logging': False,
-    'error': None,
-    'volume_type': None,
 }
 
 

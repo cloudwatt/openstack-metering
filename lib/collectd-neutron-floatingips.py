@@ -96,7 +96,6 @@ config = {
     'endpoint_type': "internalURL",
     'verbose_logging': False,
     'public_network': 'public',
-    'error': None,
 }
 
 
