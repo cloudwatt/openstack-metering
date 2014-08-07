@@ -52,8 +52,8 @@ class FetchInfo(threading.Thread):
         self.queue_out = queue_out
 
     def run(self):
-        while True:
             status = self.queue.get()
+	while not self.queue.empty():
             nova_util = self.nova_util
             self.queue_out.put({status: len(
                 nova_util.nova_client.servers.list(
