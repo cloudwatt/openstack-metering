@@ -52,8 +52,8 @@ class FetchInfo(threading.Thread):
         self.queue_out = queue_out
 
     def run(self):
-            status = self.queue.get()
 	while not self.queue.empty():
+            status = self.queue.get(timeout=10)
             nova_util = self.nova_util
             self.queue_out.put({status: len(
                 nova_util.nova_client.servers.list(
@@ -92,12 +92,12 @@ class OpenstackUtils:
     def get_stats(self):
         self.stats = {}
         self.last_stats = int(mktime(datetime.now().timetuple()))
-        for _ in range(len(OpenstackUtils.STATUS)):
+        for status in OpenstackUtils.STATUS:
+            queue.put(status.lower())
+        for _ in OpenstackUtils.STATUS:
             task = FetchInfo(self, queue, queue_out)
             task.setDaemon(True)
             task.start()
-        for status in OpenstackUtils.STATUS:
-            queue.put(status.lower())
         queue.join()
         for _ in range(len(OpenstackUtils.STATUS)):
             data = queue_out.get()
