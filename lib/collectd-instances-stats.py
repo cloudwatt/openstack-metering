@@ -52,7 +52,7 @@ class FetchInfo(threading.Thread):
         self.queue_out = queue_out
 
     def run(self):
-	while not self.queue.empty():
+        while not self.queue.empty():
             status = self.queue.get(timeout=10)
             nova_util = self.nova_util
             self.queue_out.put({status: len(
@@ -62,7 +62,7 @@ class FetchInfo(threading.Thread):
                     detailed=False,
                 ))})
             self.queue.task_done()
-
+        log_verbose("Exiting from thread " + str(self))
 
 class OpenstackUtils:
     STATUS = [
