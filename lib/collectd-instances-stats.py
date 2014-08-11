@@ -52,8 +52,12 @@ class FetchInfo(threading.Thread):
         self.queue_out = queue_out
 
     def run(self):
+        log_verbose("Entering thread %s" % str(self))
         while not self.queue.empty():
+            log_verbose("Entering loop %s" % str(self))
             status = self.queue.get(timeout=10)
+            log_verbose("Processing status %s %s (%s left)" %
+                        (status, str(self), self.queue.qsize()))
             nova_util = self.nova_util
             self.queue_out.put({status: len(
                 nova_util.nova_client.servers.list(
@@ -61,8 +65,9 @@ class FetchInfo(threading.Thread):
                                  'status': status},
                     detailed=False,
                 ))})
+            log_verbose("Task done %s" % str(self))
             self.queue.task_done()
-        log_verbose("Exiting from thread " + str(self))
+        log_verbose("Leaving thread %s" % str(self))
 
 class OpenstackUtils:
     STATUS = [
@@ -98,7 +103,9 @@ class OpenstackUtils:
             task = FetchInfo(self, queue, queue_out)
             task.setDaemon(True)
             task.start()
+        log_verbose("Waiting for threads to complete")
         queue.join()
+        log_verbose("Finish")
         for _ in range(len(OpenstackUtils.STATUS)):
             data = queue_out.get()
             self.stats[data.keys()[0]] = data.values()[0]
@@ -222,6 +229,7 @@ def init_callback():
 
 
 def read_callback(data=None):
+    log_verbose("read_callback called")
     global config
     if 'util' not in config:
         log_error("Problem during initialization, fix and restart collectd.")
@@ -235,6 +243,7 @@ def read_callback(data=None):
                        type_instance,
                        '',
                        'openstack')
+    log_verbose("Leaving read_callback")
 
 collectd.register_config(configure_callback)
 collectd.register_init(init_callback)
