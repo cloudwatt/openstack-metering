@@ -101,6 +101,8 @@ class OpenstackUtils:
     def get_stats(self):
         self.stats = {}
         self.last_stats = int(mktime(datetime.now().timetuple()))
+        log_verbose("Authenticating to keystone")
+        self.nova_client.authenticate()
         for status in OpenstackUtils.STATUS:
             queue.put(status.lower())
         for _ in range(len(OpenstackUtils.STATUS)):
