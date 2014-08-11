@@ -79,7 +79,7 @@ class OpenstackUtils:
                 fields=['cidr', 'gateway_ip'])['subnets'][0]
             subnet_match = subnet_mask.match(net_info['cidr'])
             if not subnet_match:
-                log_warning("Cannot retrieve the subnet mask of subnet_id %" %
+                log_warning("Cannot retrieve the subnet mask of subnet_id %s" %
                             public_subnet_id)
                 next
             subnet = int(subnet_match.group(1))
