@@ -42,6 +42,8 @@ class OpenstackUtils:
         stats = {}
         self.hypervisors = None
         self.last_stats = int(mktime(datetime.now().timetuple()))
+        log_verbose("Authenticating to keystone")
+        self.nova_client.authenticate()
         hosts_by_aggregate = self._hosts_by_aggregate()
         for aggregate, hosts in hosts_by_aggregate.items():
             vcpu_multiplier = 1

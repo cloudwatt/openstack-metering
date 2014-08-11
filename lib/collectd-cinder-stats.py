@@ -88,6 +88,8 @@ class OpenstackUtils:
     def get_stats(self):
         self.stats = {}
         self.last_stats = int(mktime(datetime.now().timetuple()))
+        log_verbose("Authenticating to keystone")
+        self.cinder_client.authenticate()
         informations = {'volumes': self.cinder_client.volumes.list,
                         'snapshots': self.cinder_client.volume_snapshots.list}
         for meth in informations:

@@ -50,6 +50,8 @@ class OpenstackUtils:
     def get_stats(self):
         stats = {}
         self.last_stats = int(mktime(datetime.now().timetuple()))
+        log_verbose("Authenticating to keystone")
+        self.keystone_client.authenticate()
         stats['users'] = len(self.keystone_client.users.list())
         stats['tenants'] = len(self.keystone_client.tenants.list())
 

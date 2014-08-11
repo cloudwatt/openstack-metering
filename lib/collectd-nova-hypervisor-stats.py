@@ -37,6 +37,8 @@ class OpenstackUtils:
 
     def get_stats(self):
         self.last_stats = int(mktime(datetime.now().timetuple()))
+        log_verbose("Authenticating to keystone")
+        self.nova_client.authenticate()
         data = self.nova_client.hypervisors.statistics()._info
         vcpu_multiplier = 1
         memory_multiplier = 1
