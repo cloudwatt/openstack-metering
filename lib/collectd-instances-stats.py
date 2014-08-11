@@ -59,12 +59,16 @@ class FetchInfo(threading.Thread):
             log_verbose("Processing status %s %s (%s left)" %
                         (status, str(self), self.queue.qsize()))
             nova_util = self.nova_util
-            self.queue_out.put({status: len(
-                nova_util.nova_client.servers.list(
-                    search_opts={'all_tenants': 1,
-                                 'status': status},
-                    detailed=False,
-                ))})
+            try:
+                self.queue_out.put({status: len(
+                    nova_util.nova_client.servers.list(
+                        search_opts={'all_tenants': 1,
+                                     'status': status},
+                        detailed=False,
+                    ))})
+            except:
+                log_warning("Failed to retrieve servers with status %s"
+                            % status)
             log_verbose("Task done %s" % str(self))
             self.queue.task_done()
         log_verbose("Leaving thread %s" % str(self))
@@ -99,7 +103,7 @@ class OpenstackUtils:
         self.last_stats = int(mktime(datetime.now().timetuple()))
         for status in OpenstackUtils.STATUS:
             queue.put(status.lower())
-        for _ in OpenstackUtils.STATUS:
+        for _ in range(len(OpenstackUtils.STATUS)):
             task = FetchInfo(self, queue, queue_out)
             task.setDaemon(True)
             task.start()
@@ -107,8 +111,11 @@ class OpenstackUtils:
         queue.join()
         log_verbose("Finish")
         for _ in range(len(OpenstackUtils.STATUS)):
-            data = queue_out.get()
-            self.stats[data.keys()[0]] = data.values()[0]
+            try:
+                data = queue_out.get(timeout=10)
+            except:
+                continue
+        self.stats[data.keys()[0]] = data.values()[0]
         return self.stats
 
 
