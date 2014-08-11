@@ -24,7 +24,6 @@
 # Requirments: python-neutronclient, python-keystoneclient, collectd
 if __name__ != "__main__":
     import collectd
-from keystoneclient.v2_0 import client
 from neutronclient.neutron import client as neutron
 from datetime import datetime
 from time import mktime
@@ -186,24 +185,14 @@ def configure_callback(conf):
 
 
 def connect(config):
-    try:
-        keystone_client = client.Client(
-            username=config['username'],
-            tenant_name=config['tenant'],
-            password=config['password'],
-            auth_url=config['auth_url'],
-        )
-        keystone_client.authenticate()
-        if not keystone_client.tenants.list():
-            log_error("The user must have the admin role to work.")
-    except Exception as e:
-        log_error("Authentication error: %s\n" % e)
-    endpoint = keystone_client.service_catalog.get_endpoints(
-        'network')['network'][0][config['endpoint_type']]
-    token = keystone_client.service_catalog.get_token()['id']
+    # Neutron-client tries to re-authenticate if it gets an unauthorized error
+    # https://github.com/openstack/python-neutronclient/blob/752423483304572f00dacfcffce35a268fa3e5d4/neutronclient/client.py#L180
     neutron_client = neutron.Client('2.0',
-                                    endpoint_url=endpoint,
-                                    token=token)
+                                    username=config['username'],
+                                    tenant_name=config['tenant'],
+                                    password=config['password'],
+                                    auth_url=config['auth_url'],
+                                    endpoint_type=config['endpoint_type'])
     conf = {'neutron_client': neutron_client}
     if config['public_network'] and config['public_network'] != 'none':
         conf['public_network'] = config['public_network']
