@@ -77,7 +77,6 @@ class OpenstackUtils:
     STATUS = [
         'ACTIVE',
         'BUILD',
-        'DELETED',
         'ERROR',
         'HARD_REBOOT',
         'PASSWORD',
