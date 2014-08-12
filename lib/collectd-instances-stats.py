@@ -117,7 +117,7 @@ class OpenstackUtils:
                 data = queue_out.get(timeout=10)
             except:
                 continue
-        self.stats[data.keys()[0]] = data.values()[0]
+            self.stats[data.keys()[0]] = data.values()[0]
         return self.stats
 
 
