@@ -55,25 +55,26 @@ class FetchInfo(threading.Thread):
         log_verbose("Entering thread %s" % str(self))
         while not self.queue.empty():
             log_verbose("Entering loop %s" % str(self))
-            status = self.queue.get(timeout=10)
-            log_verbose("Processing status %s %s (%s left)" %
-                        (status, str(self), self.queue.qsize()))
-            nova_util = self.nova_util
+            key, filters = self.queue.get(timeout=10)
+            log_verbose("Processing filter %s %s (%s left)" %
+                        (str(filters), str(self), self.queue.qsize()))
             try:
-                self.queue_out.put({status: len(
-                    nova_util.nova_client.servers.list(
-                        search_opts={'all_tenants': 1,
-                                     'status': status},
+                filters['all_tenants'] = 1
+                self.queue_out.put({key: len(
+                    self.nova_util.nova_client.servers.list(
+                        search_opts=filters,
                         detailed=False,
                     ))})
             except:
-                log_warning("Failed to retrieve servers with status %s"
-                            % status)
+                log_warning("Failed to retrieve servers that match %s"
+                            % str(filters))
             log_verbose("Task done %s" % str(self))
             self.queue.task_done()
         log_verbose("Leaving thread %s" % str(self))
 
 class OpenstackUtils:
+    WORKERS = 10
+
     STATUS = [
         'ACTIVE',
         'BUILD',
@@ -102,16 +103,23 @@ class OpenstackUtils:
         self.last_stats = int(mktime(datetime.now().timetuple()))
         log_verbose("Authenticating to keystone")
         self.nova_client.authenticate()
-        for status in OpenstackUtils.STATUS:
-            queue.put(status.lower())
-        for _ in range(len(OpenstackUtils.STATUS)):
+
+        flavors = {}
+        for flavor in self.nova_client.flavors.list():
+            flavors[flavor.id] = flavor.name
+            queue.put((flavor.name, {'flavor': flavor.id}))
+
+        for status in map(str.lower, OpenstackUtils.STATUS):
+            queue.put((status, {'status': status}))
+
+        for i in xrange(OpenstackUtils.WORKERS):
             task = FetchInfo(self, queue, queue_out)
             task.setDaemon(True)
             task.start()
         log_verbose("Waiting for threads to complete")
         queue.join()
         log_verbose("Finish")
-        for _ in range(len(OpenstackUtils.STATUS)):
+        for _ in xrange(queue_out.qsize()):
             try:
                 data = queue_out.get(timeout=10)
             except:
@@ -230,15 +238,13 @@ def connect(config):
 
 def init_callback():
     """Initialization block"""
-    global config
     nova_client = connect(config)
-    log_verbose('Got a valid connection to cinder API')
+    log_verbose('Got a valid connection to nova API')
     config['util'] = OpenstackUtils(nova_client)
 
 
 def read_callback(data=None):
     log_verbose("read_callback called")
-    global config
     if 'util' not in config:
         log_error("Problem during initialization, fix and restart collectd.")
     info = config['util'].get_stats()
