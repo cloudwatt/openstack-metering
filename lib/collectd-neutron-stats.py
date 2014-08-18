@@ -30,7 +30,14 @@ from time import mktime
 from pprint import pformat
 import re
 
-plugin_name = 'collectd-neutron-floatingips'
+
+plugin_name = 'collectd-neutron-stats'
+version = '0.1.0'
+config = {
+    'endpoint_type': "internalURL",
+    'verbose_logging': False,
+    'public_network': 'public',
+}
 
 
 class OpenstackUtils:
@@ -51,12 +58,16 @@ class OpenstackUtils:
     def get_stats(self):
         stats = {}
         self.last_stats = int(mktime(datetime.now().timetuple()))
-        stats['used'] = len(self.neutron_client.list_floatingips(
-            fields='tenant_id')['floatingips'])
+        kwargs = {'retrieve_all': True, 'fields': 'id'}
+        stats['networks'] = len(self.neutron_client.list_networks(**kwargs)['networks'])
+        stats['ports'] = len(self.neutron_client.list_ports(**kwargs)["ports"])
+        stats['floatingips'] = {
+            'used': len(self.neutron_client.list_floatingips(**kwargs)['floatingips'])
+        }
         if self.public_network:
             total_ip = self._estimate_total_ip()
             if total_ip:
-                stats['total_ips_estimate'] = total_ip
+                stats['floatingips']['total_ips_estimate'] = total_ip
 
         return stats
 
@@ -88,14 +99,6 @@ class OpenstackUtils:
             ips_number -= 2
             total_ip += ips_number
         return total_ip
-
-version = '0.1.0'
-
-config = {
-    'endpoint_type': "internalURL",
-    'verbose_logging': False,
-    'public_network': 'public',
-}
 
 
 def log_verbose(msg):
@@ -173,14 +176,14 @@ def configure_callback(conf):
         log_error('Tenant not defined')
 
     log_verbose(
-        "Configured with auth_url=%s, username=%s, password=%s, tenant=%s, " %
+        "Configured with auth_url=%s, username=%s, password=%s, " \
+        "tenant=%s, endpoint_type=%s, public_network=%s" %
         (config['auth_url'],
          config['username'],
          config['password'],
-         config['tenant']) +
-        " endpoint_type=%s" %
-        (config['endpoint_type']) +
-        " public_network=%s" % config['public_network']
+         config['tenant'],
+         config['endpoint_type'],
+         config['public_network'])
     )
 
 
@@ -217,7 +220,7 @@ def read_callback(data=None):
         info = config['util'].get_stats()
         log_verbose(pformat(info))
         dispatch_value(info.values(),
-                       'floatingips',
+                       'resources',
                        'neutron',
                        config['util'].last_stats,
                        '',
