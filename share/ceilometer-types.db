@@ -1,0 +1,2 @@
+alarms                  ok:GAUGE:0:U, alarm:GAUGE:0:U, insufficient_data:GAUGE:0:U
+meters                  value:GAUGE:0:U

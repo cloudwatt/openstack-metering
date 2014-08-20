@@ -1,0 +1,4 @@
+volumes                 value:GAUGE:0:U
+snapshots               value:GAUGE:0:U
+backups                 value:GAUGE:0:U
+services                value:GAUGE:0:U
