@@ -59,15 +59,13 @@ class OpenstackUtils:
         stats = {}
         self.last_stats = int(mktime(datetime.now().timetuple()))
         kwargs = {'retrieve_all': True, 'fields': 'id'}
-        stats['networks'] = len(self.neutron_client.list_networks(**kwargs)['networks'])
-        stats['ports'] = len(self.neutron_client.list_ports(**kwargs)["ports"])
-        stats['floatingips'] = {
-            'used': len(self.neutron_client.list_floatingips(**kwargs)['floatingips'])
-        }
+        stats['networks'] = [ len(self.neutron_client.list_networks(**kwargs)['networks']) ]
+        stats['ports'] = [ len(self.neutron_client.list_ports(**kwargs)["ports"]) ]
+        stats['floatingips'] = [ len(self.neutron_client.list_floatingips(**kwargs)['floatingips']) ]
         if self.public_network:
             total_ip = self._estimate_total_ip()
             if total_ip:
-                stats['floatingips']['total_ips_estimate'] = total_ip
+                stats['floatingips'].append(total_ip)
 
         return stats
 
@@ -219,13 +217,14 @@ def read_callback(data=None):
     try:
         info = config['util'].get_stats()
         log_verbose(pformat(info))
-        dispatch_value(info.values(),
-                       'resources',
-                       'neutron',
-                       config['util'].last_stats,
-                       '',
-                       '',
-                       'openstack')
+        for key, value in info.items():
+            dispatch_value(value,
+                           key,
+                           'neutron',
+                           config['util'].last_stats,
+                           '',
+                           '',
+                           'openstack')
     except Exception as e:
         log_warning(
             "Problem while reading, trying to authenticate (%s)" % e)
