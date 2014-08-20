@@ -89,7 +89,7 @@ def dispatch_value(value, type_name, plugin_name, date=None,
     val = collectd.Values()
     val.plugin = plugin_name
     val.type = type_name
-    val.values = value
+    val.values = [value]
 
     if plugin_instance:
         val.plugin_instance = plugin_instance
@@ -187,13 +187,14 @@ def read_callback(data=None):
     try:
         info = config['util'].get_stats()
         log_verbose(pformat(info))
-        dispatch_value(info.values(),
-                       'images',
-                       'glance',
-                       config['util'].last_stats,
-                       '',
-                       '',
-                       'openstack')
+        for key, value in info.items():
+            dispatch_value(value,
+                           key,
+                           'glance',
+                           config['util'].last_stats,
+                           '',
+                           '',
+                           'openstack')
     except Exception as e:
         log_warning(
             "Problem while reading, trying to authenticate (%s)" % e)
