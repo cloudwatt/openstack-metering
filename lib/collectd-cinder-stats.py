@@ -29,6 +29,8 @@ from datetime import datetime
 from time import mktime
 from pprint import pformat
 from string import find
+from functools import partial
+
 
 plugin_name = 'collectd-cinder-stats'
 
@@ -90,11 +92,13 @@ class OpenstackUtils:
         self.last_stats = int(mktime(datetime.now().timetuple()))
         log_verbose("Authenticating to keystone")
         self.cinder_client.authenticate()
-        informations = {'volumes': self.cinder_client.volumes.list,
-                        'snapshots': self.cinder_client.volume_snapshots.list}
+        informations = {'volumes': partial(self.cinder_client.volumes.list,
+                                           search_opts={'all_tenants': 1}),
+                        'snapshots': partial(self.cinder_client.volume_snapshots.list,
+                                             search_opts={'all_tenants': 1})}
         for meth in informations:
             # this seems to be one connection per tenant.
-            data = informations[meth](search_opts={'all_tenants': 1})
+            data = informations[meth]()
             number_data = len(data)
             counter = 0
             while counter < number_data:
@@ -102,6 +106,17 @@ class OpenstackUtils:
                 v = data.pop()
                 counter += 1
                 self._set_stats(v, meth)
+
+        services = {}
+        for s in self.cinder_client.services.list():
+            services[s.binary] = services.setdefault(s.binary, 0) + 1
+        self.stats["services"] = services
+
+        backups = self.cinder_client.backups.list()
+        self.stats["backups"] = {
+            "size": reduce(lambda sum, x: sum + x.size, backups, 0),
+            "count": len(backups)
+        }
 
         return self.stats
 
