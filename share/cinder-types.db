@@ -1,4 +1,6 @@
-volumes   value:GAUGE:0:U
-snapshots value:GAUGE:0:U
-backups   value:GAUGE:0:U
-services  value:GAUGE:0:U
+volumes          value:GAUGE:0:U
+snapshots        value:GAUGE:0:U
+backups          value:GAUGE:0:U
+cinder-backup    count:GAUGE:0:U, active:GAUGE:0:U, up:GAUGE:0:U
+cinder-volume    count:GAUGE:0:U, active:GAUGE:0:U, up:GAUGE:0:U
+cinder-scheduler count:GAUGE:0:U, active:GAUGE:0:U, up:GAUGE:0:U

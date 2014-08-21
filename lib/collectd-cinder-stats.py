@@ -30,7 +30,7 @@ from time import mktime
 from pprint import pformat
 from string import find
 from functools import partial
-
+from itertools import chain
 
 plugin_name = 'collectd-cinder-stats'
 
@@ -53,22 +53,19 @@ class OpenstackUtils:
         properties = ['count', 'size', 'status', 'attached', 'bootable']
         for key in properties:
             volume_type = ''
-            if find(meth, 'snapshots') >= 0:
+            if meth in ('snapshots', 'backups'):
                 if key in ['attached', 'bootable']:
                     continue
-            if hasattr(cinder, 'volume_type'):
-                # TODO: "None" type are all the volumes before the
-                # switch to multi-backend.  Cannot do a thing about
-                # them.  Maybe add a DefaultBackend option to the
-                # script.  Or Just add the proper property to the
-                # volume.
 
-                volume_type = cinder.volume_type
-            else:
-                volume_type = None
+            # TODO: "None" type are all the volumes before the
+            # switch to multi-backend.  Cannot do a thing about
+            # them.  Maybe add a DefaultBackend option to the
+            # script.  Or Just add the proper property to the
+            # volume.
+            volume_type = getattr(cinder, 'volume_type', None)
 
-            if volume_type not in self.stats:
-                self.stats[volume_type] = {meth: {}}
+            self.stats.setdefault(volume_type, {meth: {}})
+            self.stats[volume_type].setdefault(meth, {})
 
             if find(key, 'status') >= 0:
                 key = 'status_' + cinder.status
@@ -76,11 +73,11 @@ class OpenstackUtils:
             if key not in self.stats[volume_type][meth]:
                 self.stats[volume_type][meth][key] = 0
 
-            if find(key, 'size') >= 0:
+            if key == 'size' and hasattr(cinder, 'size'):
                 self.stats[volume_type][meth][key] += cinder.size
-            elif find(key, 'attached') >= 0:
+            elif key == 'attached' and hasattr(cinder, 'attachments'):
                 self.stats[volume_type][meth][key] += len(cinder.attachments)
-            elif find(key, 'boot') >= 0:
+            elif key == 'boot':
                 if cinder.bootable and \
                    cinder.bootable not in ['false', 'False']:
                     self.stats[volume_type][meth][key] += 1
@@ -92,32 +89,33 @@ class OpenstackUtils:
         self.last_stats = int(mktime(datetime.now().timetuple()))
         log_verbose("Authenticating to keystone")
         self.cinder_client.authenticate()
-        informations = {'volumes': partial(self.cinder_client.volumes.list,
-                                           search_opts={'all_tenants': 1}),
-                        'snapshots': partial(self.cinder_client.volume_snapshots.list,
-                                             search_opts={'all_tenants': 1})}
+        kwargs = {'search_opts':{'all_tenants': 1}}
+        volumes = {}
+        for volume in self.cinder_client.volumes.list(**kwargs):
+            volumes[volume.id] = volume
+        snapshots = self.cinder_client.volume_snapshots.list(**kwargs)
+        backups = self.cinder_client.backups.list()
+        for item in chain(snapshots, backups):
+            item.volume_type = volumes[item.volume_id].volume_type
+        informations = {'volumes': volumes.values(),
+                        'snapshots': snapshots,
+                        'backups': backups}
         for meth in informations:
             # this seems to be one connection per tenant.
-            data = informations[meth]()
-            number_data = len(data)
-            counter = 0
-            while counter < number_data:
-                # try to keep memory usage minimal
-                v = data.pop()
-                counter += 1
+            data = informations[meth]
+            for v in data:
                 self._set_stats(v, meth)
 
         services = {}
         for s in self.cinder_client.services.list():
-            services[s.binary] = services.setdefault(s.binary, 0) + 1
-        self.stats["services"] = services
-
-        backups = self.cinder_client.backups.list()
-        self.stats["backups"] = {
-            "size": reduce(lambda sum, x: sum + x.size, backups, 0),
-            "count": len(backups)
-        }
-
+            stats = services.setdefault(s.binary, [ 0, 0, 0 ])
+            stats[0] += 1
+            if s.status == "enabled":
+                stats[1] += 1
+            if s.state == "up":
+                stats[2] += 1
+           
+        self.stats[""] = services
         return self.stats
 
 
