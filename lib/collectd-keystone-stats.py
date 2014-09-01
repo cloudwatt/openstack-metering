@@ -21,7 +21,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Requirments:  python-keystoneclient, collectd
+# Requirements:  python-keystoneclient, collectd
 if __name__ != "__main__":
     import collectd
 from keystoneclient.v2_0 import client
@@ -52,9 +52,11 @@ class OpenstackUtils:
         self.last_stats = int(mktime(datetime.now().timetuple()))
         log_verbose("Authenticating to keystone")
         self.keystone_client.authenticate()
-        stats['users'] = len(self.keystone_client.users.list())
+        users = self.keystone_client.users.list()
+        count = len(users)
+        enabled = reduce(lambda x, y: x + int(y.enabled), users, 0)
+        stats['users'] = [ count, enabled, count - enabled ]
         stats['tenants'] = len(self.keystone_client.tenants.list())
-
         return stats
 
 

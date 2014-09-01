@@ -1,2 +1,2 @@
-accounts value:GAUGE:0:U
+accounts count:GAUGE:0:U, enabled:GAUGE:0:U, disabled:GAUGE:0:U
 tenants  value:GAUGE:0:U
