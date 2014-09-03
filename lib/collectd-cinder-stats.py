@@ -33,12 +33,62 @@ from functools import partial
 from itertools import chain
 
 plugin_name = 'collectd-cinder-stats'
-
 version = '0.1.0'
-
 config = {
     'endpoint_type': "internalURL",
     'verbose_logging': False,
+}
+
+CINDER_SERVICES = (
+    "cinder-backup",
+    "cinder-scheduler",
+    "cinder-volume"
+)
+
+STATUSES = {
+    'backups': [
+        'available',
+        'creating',
+        'restoring',
+        'error',
+        'deleting'
+    ],
+    'snapshots': [
+        'creating',
+        'available',
+        'error'
+    ],
+    'volumes': [
+        'available',
+        'error',
+        'error_restoring',
+        'error_extending',
+        'restoring',
+        'backing-up',
+    ]
+}
+
+count = lambda x, y: x + 1
+size = lambda x, y: x + y.size
+num_attachments = lambda x, y: x + len(y.attachments)
+sum_bootable = lambda x, y: x + (getattr(y, 'bootable', 0) in [ 'true', 'True' ])
+count_status = lambda status, x, y: x + (y.status == status)
+
+PROPERTIES = {
+    'backups': {
+        'count' : count,
+        'size' : size,
+    },
+    'snapshots': {
+        'count' : count,
+        'size' : size,
+    },
+    'volumes':  {
+        'count' : count,
+        'size' : size,
+        'attached' : num_attachments,
+        'bootable' : sum_bootable,
+    }
 }
 
 
@@ -49,73 +99,68 @@ class OpenstackUtils:
         self.connection_done = None
         self.stats = {}
 
-    def _set_stats(self, cinder, meth):
-        properties = ['count', 'size', 'status', 'attached', 'bootable']
-        for key in properties:
-            volume_type = ''
-            if meth in ('snapshots', 'backups'):
-                if key in ['attached', 'bootable']:
-                    continue
+    def get_stats(self):
+        volumes = {}
+        volume_types = set()
+        kwargs = {'search_opts':{'all_tenants': 1}}
+
+        log_verbose("Authenticating to keystone")
+        self.cinder_client.authenticate()
+
+        self.stats = { "backups" : {} }
+        self.last_stats = int(mktime(datetime.now().timetuple()))
+
+        for volume in self.cinder_client.volumes.list(**kwargs):
+            volumes[volume.id] = volume
 
             # TODO: "None" type are all the volumes before the
             # switch to multi-backend.  Cannot do a thing about
             # them.  Maybe add a DefaultBackend option to the
             # script.  Or Just add the proper property to the
             # volume.
-            volume_type = getattr(cinder, 'volume_type', None)
+            volume_types.add(getattr(volume, 'volume_type', None))
 
-            self.stats.setdefault(volume_type, {meth: {}})
-            self.stats[volume_type].setdefault(meth, {})
-
-            if find(key, 'status') >= 0:
-                key = 'status_' + cinder.status
-
-            if key not in self.stats[volume_type][meth]:
-                self.stats[volume_type][meth][key] = 0
-
-            if key == 'size' and hasattr(cinder, 'size'):
-                self.stats[volume_type][meth][key] += cinder.size
-            elif key == 'attached' and hasattr(cinder, 'attachments'):
-                self.stats[volume_type][meth][key] += len(cinder.attachments)
-            elif key == 'boot':
-                if cinder.bootable and \
-                   cinder.bootable not in ['false', 'False']:
-                    self.stats[volume_type][meth][key] += 1
-            else:
-                self.stats[volume_type][meth][key] += 1
-
-    def get_stats(self):
-        self.stats = {}
-        self.last_stats = int(mktime(datetime.now().timetuple()))
-        log_verbose("Authenticating to keystone")
-        self.cinder_client.authenticate()
-        kwargs = {'search_opts':{'all_tenants': 1}}
-        volumes = {}
-        for volume in self.cinder_client.volumes.list(**kwargs):
-            volumes[volume.id] = volume
+        # Link the snapshots to their respective backend type
         snapshots = self.cinder_client.volume_snapshots.list(**kwargs)
-        backups = self.cinder_client.backups.list()
-        for item in chain(snapshots, backups):
-            item.volume_type = volumes[item.volume_id].volume_type
-        informations = {'volumes': volumes.values(),
-                        'snapshots': snapshots,
-                        'backups': backups}
-        for meth in informations:
-            # this seems to be one connection per tenant.
-            data = informations[meth]
-            for v in data:
-                self._set_stats(v, meth)
+        for item in snapshots:
+            if not volumes.has_key(item.volume_id):
+                item.volume_type = None
+            else:
+                item.volume_type = volumes[item.volume_id].volume_type
 
-        services = {}
-        for s in self.cinder_client.services.list():
-            stats = services.setdefault(s.binary, [ 0, 0, 0 ])
-            stats[0] += 1
-            if s.status == "enabled":
-                stats[1] += 1
-            if s.state == "up":
-                stats[2] += 1
-           
-        self.stats[""] = services
+        # Link the backup to the fake 'backups' backend type
+        backups = self.cinder_client.backups.list()
+        for backup in backups:
+            backup.volume_type = "backups"
+
+        # Fetch the statistics for volumes, snapshots and backups
+        def fetch_stats(kind, hash, items):
+            for status in STATUSES[kind]:
+                PROPERTIES[kind]["status_" + status] = partial(count_status, status)
+
+            for prop, func in PROPERTIES[kind].items():
+                hash[prop] = reduce(func, items, 0)
+
+        fetch_stats("backups", self.stats["backups"], backups)
+        for volume_type in volume_types:
+            self.stats[volume_type] = { "volumes" : {}, "snapshots" : {} }
+            fetch_stats("volumes", self.stats[volume_type]["volumes"],
+                        filter(lambda x: x.volume_type == volume_type,
+                               volumes.values()))
+            fetch_stats("snapshots", self.stats[volume_type]["snapshots"],
+                        filter(lambda x: x.volume_type == volume_type,
+                               snapshots))
+
+        # Fetch the service states
+        services = []
+        fetched_services = self.cinder_client.services.list()
+        for service in CINDER_SERVICES:
+            instances = filter(lambda s: s.binary == service, fetched_services)
+            services.append(len(instances))
+            services.append(len(filter(lambda s: s.status == "enabled", instances)))
+            services.append(len(filter(lambda s: s.state == "up", instances)))
+
+        self.stats["services"] = services
         return self.stats
 
 
@@ -243,17 +288,28 @@ def read_callback(data=None):
         log_error("Problem during initialization, fix and restart collectd.")
     info = config['util'].get_stats()
     log_verbose(pformat(info))
+
     # plugin instance
     for plugin_instance in info:
         # instance name
-        for type_name in info[plugin_instance]:
-            dispatch_value(info[plugin_instance][type_name],
+        if plugin_instance in ('services', 'backups'):
+            dispatch_value(info[plugin_instance],
                            'cinder',
                            config['util'].last_stats,
-                           type_name,
-                           '',
                            plugin_instance,
+                           '',
+                           '',
                            'openstack')
+        else:
+            for type_name in info[plugin_instance]:
+                dispatch_value(info[plugin_instance][type_name],
+                               'cinder',
+                               config['util'].last_stats,
+                               type_name,
+                               '',
+                               plugin_instance,
+                               'openstack')
+
 
 collectd.register_config(configure_callback)
 collectd.register_init(init_callback)
