@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- encoding: utf-8 -*-
 #
-# Collectd plugin for graphing nova hypervisor-stats
+# Collectd plugin for graphing Nova stats
 #
 # Copyright © 2014 eNovance <licensing@enovance.com>
 #
@@ -21,7 +21,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Requirments: python-novaclient, collectd
+# Requirements: python-novaclient, collectd
 if __name__ != "__main__":
     import collectd
 
@@ -32,6 +32,22 @@ from pprint import pformat
 from novaclient import exceptions
 
 
+plugin_name = 'collectd-nova-stats'
+version = '0.1.0'
+config = {
+    'endpoint_type': "internalURL",
+    'verbose_logging': False,
+}
+
+NOVA_SERVICES = (
+    "nova-cert",
+    "nova-compute",
+    "nova-conductor",
+    "nova-consoleauth",
+    "nova-scheduler"
+)
+
+
 class OpenstackUtils:
     def __init__(self, nova_client):
         self.nova_client = nova_client
@@ -39,7 +55,7 @@ class OpenstackUtils:
         self.hypervisors = None
 
     def get_stats(self):
-        stats = {}
+        aggregates = {}
         self.hypervisors = None
         self.last_stats = int(mktime(datetime.now().timetuple()))
         log_verbose("Authenticating to keystone")
@@ -51,7 +67,7 @@ class OpenstackUtils:
             if 'overcommit' in config and aggregate in config['overcommit']:
                 vcpu_multiplier = config['overcommit'][aggregate]['vcpus']
                 memory_multiplier = config['overcommit'][aggregate]['memory']
-            stats[aggregate] = {
+            aggregates[aggregate] = {
                 'disk': [0, 0, 0, 0],
                 'vcpus': dict.fromkeys(['total',
                                         'used',
@@ -63,11 +79,10 @@ class OpenstackUtils:
                 'servers': [len(hosts), 0]
             }
             for host in hosts:
-                stats[aggregate] = {
-                    'instances': stats[aggregate]['instances'] +
-                    host.running_vms,
+                aggregates[aggregate] = {
+                    'instances': aggregates[aggregate]['instances'] + host.running_vms,
                     'disk': [x[0] + x[1] for x in zip(
-                        stats[aggregate]['disk'], [
+                        aggregates[aggregate]['disk'], [
                             host.local_gb,
                             host.local_gb_used,
                             host.free_disk_gb,
@@ -75,28 +90,40 @@ class OpenstackUtils:
                         ]
                     )],
                     'memory': {
-                        'total': stats[aggregate]['memory']['total'] + host.memory_mb * memory_multiplier,
-                        'real': stats[aggregate]['memory']['total'] + host.memory_mb,
-                        'used': (stats[aggregate]['memory']['total']
+                        'total': aggregates[aggregate]['memory']['total'] + host.memory_mb * memory_multiplier,
+                        'real': aggregates[aggregate]['memory']['total'] + host.memory_mb,
+                        'used': (aggregates[aggregate]['memory']['total']
                                  + host.memory_mb * memory_multiplier
-                                 - stats[aggregate]['memory']['used']
+                                 - aggregates[aggregate]['memory']['used']
                                  + host.memory_mb_used),
-                        'used_real':  stats[aggregate]['memory']['used'] + host.memory_mb_used,
-                        'free':  stats[aggregate]['memory']['free'] + host.free_ram_mb,
+                        'used_real':  aggregates[aggregate]['memory']['used'] + host.memory_mb_used,
+                        'free':  aggregates[aggregate]['memory']['free'] + host.free_ram_mb,
                     },
                     'vcpus': {
-                        'total': stats[aggregate]['vcpus']['total'] + host.vcpus * vcpu_multiplier,
-                        'real': stats[aggregate]['vcpus']['real'] + host.vcpus,
-                        'used': stats[aggregate]['vcpus']['used'] + host.vcpus_used,
+                        'total': aggregates[aggregate]['vcpus']['total'] + host.vcpus * vcpu_multiplier,
+                        'real': aggregates[aggregate]['vcpus']['real'] + host.vcpus,
+                        'used': aggregates[aggregate]['vcpus']['used'] + host.vcpus_used,
                     },
                     'servers': [x[0] + x[1] for x in zip(
-                        stats[aggregate]['servers'],
+                        aggregates[aggregate]['servers'],
                         [0, host.current_workload])]
                 }
-            if stats[aggregate]['servers'][0] > 0:
-                stats[aggregate]['servers'][1]  = stats[aggregate]['servers'][1] // \
-                                                  stats[aggregate]['servers'][0]
-        return stats
+
+            if aggregates[aggregate]['servers'][0] > 0:
+                aggregates[aggregate]['servers'][1] = \
+                    aggregates[aggregate]['servers'][1] // \
+                    aggregates[aggregate]['servers'][0]
+
+        services = []
+        fetched_services = self.nova_client.services.list()
+        for service in NOVA_SERVICES:
+            instances = filter(lambda s: s.binary == service, fetched_services)
+            services.append(len(instances))
+            services.append(len(filter(lambda s: s.state == "up", instances)))
+            services.append(len(filter(lambda s: s.status == "enabled", instances)))
+
+        return { 'aggregates' : aggregates,
+                 'services' : services }
 
     def _hosts_by_aggregate(self):
         hba = {}
@@ -123,14 +150,6 @@ class OpenstackUtils:
             return self.hypervisors[name]
         else:
             raise(exceptions.NotFound("'%s' is not on hypervisors list" % name))
-
-
-version = '0.1.0'
-
-config = {
-    'endpoint_type': "internalURL",
-    'verbose_logging': False,
-}
 
 
 def log_verbose(msg):
@@ -262,21 +281,19 @@ def connect(config):
 
 def init_callback():
     """Initialization block"""
-    global config
     nova_client = connect(config)
     log_verbose('Got a valid connection to nova API')
     config['util'] = OpenstackUtils(nova_client)
 
 
 def read_callback(data=None):
-    global config
     if 'util' not in config:
         log_error("Problem during initialization, fix and restart collectd.")
     info = config['util'].get_stats()
     log_verbose(pformat(info))
-    for aggregate in info:
-        for key in info[aggregate]:
-            dispatch_value(info[aggregate][key],
+    for aggregate in info['aggregates']:
+        for key in info['aggregates'][aggregate]:
+            dispatch_value(info['aggregates'][aggregate][key],
                            'hypervisors',
                            config['util'].last_stats,
                            key,
@@ -284,7 +301,14 @@ def read_callback(data=None):
                            aggregate,
                            'openstack')
 
-plugin_name = 'collectd-nova-aggregate'
+    dispatch_value(info['services'],
+                   'nova',
+                    config['util'].last_stats,
+                    'services',
+                    '',
+                    '',
+                    'openstack')
+
 
 collectd.register_config(configure_callback)
 collectd.register_init(init_callback)
