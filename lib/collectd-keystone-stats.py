@@ -56,7 +56,7 @@ class OpenstackUtils:
         count = len(users)
         enabled = reduce(lambda x, y: x + int(y.enabled), users, 0)
         stats['users'] = [ count, enabled, count - enabled ]
-        stats['tenants'] = len(self.keystone_client.tenants.list())
+        stats['tenants'] = [ len(self.keystone_client.tenants.list()) ]
         return stats
 
 
@@ -80,7 +80,6 @@ def dispatch_value(key, value, type_name, plugin_name, date=None,
                    host=''):
     """Dispatch a value"""
 
-    value = int(value)
     log_verbose('Sending value: %s=%s' %
                 (host + '.' + plugin_name + '-' + plugin_instance +
                  '.' + type_name + '-' + type_instance, value))
@@ -88,7 +87,7 @@ def dispatch_value(key, value, type_name, plugin_name, date=None,
     val = collectd.Values()
     val.plugin = plugin_name
     val.type = type_name
-    val.values = [value]
+    val.values = value
 
     if plugin_instance:
         val.plugin_instance = plugin_instance
