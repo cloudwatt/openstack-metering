@@ -160,7 +160,7 @@ class OpenstackUtils:
             services.append(len(filter(lambda s: s.status == "enabled", instances)))
             services.append(len(filter(lambda s: s.state == "up", instances)))
 
-        self.stats["services"] = services
+        self.stats["cinder-services"] = services
         return self.stats
 
 
@@ -292,7 +292,7 @@ def read_callback(data=None):
     # plugin instance
     for plugin_instance in info:
         # instance name
-        if plugin_instance in ('services', 'backups'):
+        if plugin_instance in ('cinder-services', 'backups'):
             dispatch_value(info[plugin_instance],
                            'cinder',
                            config['util'].last_stats,

@@ -123,7 +123,7 @@ class OpenstackUtils:
             services.append(len(filter(lambda s: s.status == "enabled", instances)))
 
         return { 'aggregates' : aggregates,
-                 'services' : services }
+                 'nova-services' : services }
 
     def _hosts_by_aggregate(self):
         hba = {}
@@ -301,10 +301,10 @@ def read_callback(data=None):
                            aggregate,
                            'openstack')
 
-    dispatch_value(info['services'],
+    dispatch_value(info['nova-services'],
                    'nova',
                     config['util'].last_stats,
-                    'services',
+                    'nova-services',
                     '',
                     '',
                     'openstack')

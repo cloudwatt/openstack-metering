@@ -1,4 +1,4 @@
 volumes          value:GAUGE:0:U
 snapshots        value:GAUGE:0:U
 backups          value:GAUGE:0:U
-services         cinder-backup-count:GAUGE:0:U, cinder-backup-status:GAUGE:0:U, cinder-backup-state:GAUGE:0:U, cinder-scheduler-count:GAUGE:0:U, cinder-scheduler-status:GAUGE:0:U, cinder-scheduler-state:GAUGE:0:U, cinder-volume-count:GAUGE:0:U, cinder-volume-status:GAUGE:0:U, cinder-volume-state:GAUGE:0:U
+cinder-services  cinder-backup-count:GAUGE:0:U, cinder-backup-status:GAUGE:0:U, cinder-backup-state:GAUGE:0:U, cinder-scheduler-count:GAUGE:0:U, cinder-scheduler-status:GAUGE:0:U, cinder-scheduler-state:GAUGE:0:U, cinder-volume-count:GAUGE:0:U, cinder-volume-status:GAUGE:0:U, cinder-volume-state:GAUGE:0:U
