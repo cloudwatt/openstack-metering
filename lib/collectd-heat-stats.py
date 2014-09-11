@@ -118,8 +118,6 @@ def configure_callback(conf):
             config['endpoint_type'] = node.values[0]
         elif node.key == 'Verbose':
             config['verbose_logging'] = bool(node.values[0])
-        elif node.key == 'PublicNetwork':
-            config['public_network'] = node.values[0]
         else:
             collectd.warning('%s plugin: Unknown config key: %s.'
                              % (plugin_name, node.key))
@@ -137,13 +135,12 @@ def configure_callback(conf):
 
     log_verbose(
         "Configured with auth_url=%s, username=%s, password=%s, " \
-        "tenant=%s, endpoint_type=%s, public_network=%s" %
+        "tenant=%s, endpoint_type=%s" %
         (config['auth_url'],
          config['username'],
          config['password'],
          config['tenant'],
-         config['endpoint_type'],
-         config['public_network'])
+         config['endpoint_type'])
     )
 
 

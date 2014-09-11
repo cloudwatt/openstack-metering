@@ -118,8 +118,6 @@ def configure_callback(conf):
             config['endpoint_type'] = node.values[0]
         elif node.key == 'Verbose':
             config['verbose_logging'] = bool(node.values[0])
-        elif node.key == 'PublicNetwork':
-            config['public_network'] = node.values[0]
         else:
             collectd.warning('%s plugin: Unknown config key: %s.'
                              % (plugin_name, node.key))
