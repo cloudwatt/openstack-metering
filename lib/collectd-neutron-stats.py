@@ -64,8 +64,7 @@ class OpenstackUtils:
         stats['floatingips'] = [ len(self.neutron_client.list_floatingips(**kwargs)['floatingips']) ]
         if self.public_network:
             total_ip = self._estimate_total_ip()
-            if total_ip:
-                stats['floatingips'].append(total_ip)
+            stats['floatingips'].append(total_ip)
 
         return stats
 
