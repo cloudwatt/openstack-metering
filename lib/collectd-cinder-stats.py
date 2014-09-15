@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- encoding: utf-8 -*-
 #
-# Collectd plugin for graphing nova hypervisor-stats
+# Collectd plugin for graphing cinder stats
 #
 # Copyright © 2014 eNovance <licensing@enovance.com>
 #
