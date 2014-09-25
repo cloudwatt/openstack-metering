@@ -24,12 +24,13 @@
 # Requirments: python-cinderclient, collectd
 if __name__ != "__main__":
     import collectd
-from novaclient.client import Client
+import novaclient.client as nova
+import glanceclient.client as glance
+from keystoneclient.v2_0 import client as keystone
 from datetime import datetime
 from time import mktime
 from pprint import pformat
-import Queue
-import threading
+import itertools
 
 plugin_name = 'collectd-instances-stats'
 
@@ -38,43 +39,11 @@ version = '0.1.0'
 config = {
     'endpoint_type': "internalURL",
     'verbose_logging': False,
+    'image_filters': {}
 }
 
-queue = Queue.Queue()
-queue_out = Queue.Queue()
-
-
-class FetchInfo(threading.Thread):
-    def __init__(self, nova_util, queue, queue_out):
-        threading.Thread.__init__(self)
-        self.nova_util = nova_util
-        self.queue = queue
-        self.queue_out = queue_out
-
-    def run(self):
-        log_verbose("Entering thread %s" % str(self))
-        while not self.queue.empty():
-            log_verbose("Entering loop %s" % str(self))
-            key, filters = self.queue.get(timeout=10)
-            log_verbose("Processing filter %s %s (%s left)" %
-                        (str(filters), str(self), self.queue.qsize()))
-            try:
-                filters['all_tenants'] = 1
-                self.queue_out.put({key: len(
-                    self.nova_util.nova_client.servers.list(
-                        search_opts=filters,
-                        detailed=False,
-                    ))})
-            except:
-                log_warning("Failed to retrieve servers that match %s"
-                            % str(filters))
-            log_verbose("Task done %s" % str(self))
-            self.queue.task_done()
-        log_verbose("Leaving thread %s" % str(self))
 
 class OpenstackUtils:
-    WORKERS = 10
-
     STATUS = [
         'ACTIVE',
         'BUILD',
@@ -92,40 +61,72 @@ class OpenstackUtils:
         'VERIFY_RESIZE'
     ]
 
-    def __init__(self, nova_client):
-        self.nova_client = nova_client
+    def __init__(self):
         self.last_stats = None
         self.connection_done = None
-        self.stats = {}
+
+    def connect(self, config):
+        ksclient = keystone.Client(username=config['username'],
+                                   tenant_name=config['tenant'],
+                                   password=config['password'],
+                                   auth_url=config['auth_url'])
+
+        compute_endpoint = ksclient.service_catalog.url_for(
+                               service_type='compute',
+                               endpoint_type=config['endpoint_type']
+                           )
+
+        image_endpoint = ksclient.service_catalog.url_for(
+                             service_type='image',
+                             endpoint_type=config['endpoint_type']
+                         )
+
+        nova_client = nova.Client('1.1',
+                                  username=config['username'],
+                                  auth_url=config['auth_url'],
+                                  api_key='',
+                                  project_id=config['tenant'],
+                                  bypass_url=compute_endpoint,
+                                  auth_token=ksclient.auth_token)
+
+        glance_client = glance.Client('1',
+                                      endpoint=image_endpoint,
+                                      token=ksclient.auth_token)
+
+        return nova_client, glance_client
 
     def get_stats(self):
-        self.stats = {}
+        nova_client, glance_client = self.connect(config)
+
         self.last_stats = int(mktime(datetime.now().timetuple()))
-        log_verbose("Authenticating to keystone")
-        self.nova_client.authenticate()
+
+        images = {}
+        for image in glance_client.images.list(
+                         filters={'visibility': 'public',
+                                  'properties': config['image_filters'],
+                                  'member_status': 'all'}):
+            images[image.id] = image.name
 
         flavors = {}
-        for flavor in self.nova_client.flavors.list():
+        for flavor in nova_client.flavors.list():
             flavors[flavor.id] = flavor.name
-            queue.put((flavor.name, {'flavor': flavor.id}))
 
-        for status in map(str.lower, OpenstackUtils.STATUS):
-            queue.put((status, {'status': status}))
+        stats = {
+            'status': {k.lower():0 for k in OpenstackUtils.STATUS},
+            'images': {k:0 for k in images.values()},
+            'flavors': {k:0 for k in flavors.values()}
+        }
 
-        for i in xrange(OpenstackUtils.WORKERS):
-            task = FetchInfo(self, queue, queue_out)
-            task.setDaemon(True)
-            task.start()
-        log_verbose("Waiting for threads to complete")
-        queue.join()
-        log_verbose("Finish")
-        for _ in xrange(queue_out.qsize()):
-            try:
-                data = queue_out.get(timeout=10)
-            except:
-                continue
-            self.stats[data.keys()[0]] = data.values()[0]
-        return self.stats
+        for vm in nova_client.servers.list(search_opts={'all_tenants':1}):
+            status = vm.status.lower()
+            stats['status'][status] = stats['status'].setdefault(status, 0) + 1
+            flavor = flavors[vm.flavor['id']]
+            stats['flavors'][flavor] = stats['flavors'].setdefault(flavor, 0) + 1
+            if images.has_key(vm.image['id']):
+                image = images[vm.image['id']]
+                stats["images"][image] = stats["images"].setdefault(image, 0) + 1
+
+        return stats
 
 
 def log_verbose(msg):
@@ -196,6 +197,8 @@ def configure_callback(conf):
             config['endpoint_type'] = node.values[0]
         elif node.key == 'Verbose':
             config['verbose_logging'] = node.values[0]
+        elif node.key == 'ImageFilter':
+            config['image_filters'][node.values[0]] = node.values[1]
         else:
             collectd.warning('%s plugin: Unknown config key: %s.'
                              % (plugin_name, node.key))
@@ -222,25 +225,10 @@ def configure_callback(conf):
     )
 
 
-def connect(config):
-    nova_client = Client('1.1',
-                         username=config['username'],
-                         project_id=config['tenant'],
-                         api_key=config['password'],
-                         auth_url=config['auth_url'],
-                         endpoint_type=config['endpoint_type'])
-    try:
-        nova_client.authenticate()
-    except Exception as e:
-        log_error("Connection failed: %s" % e)
-    return nova_client
-
-
 def init_callback():
     """Initialization block"""
-    nova_client = connect(config)
-    log_verbose('Got a valid connection to nova API')
-    config['util'] = OpenstackUtils(nova_client)
+    config['util'] = OpenstackUtils()
+    config['util'].connect(config)
 
 
 def read_callback(data=None):
@@ -253,12 +241,24 @@ def read_callback(data=None):
         dispatch_value(info[type_instance],
                        'nova',
                        config['util'].last_stats,
-                       'instances',
+                       type_instance,
                        type_instance,
                        '',
                        'openstack')
     log_verbose("Leaving read_callback")
 
-collectd.register_config(configure_callback)
-collectd.register_init(init_callback)
-collectd.register_read(read_callback)
+
+if __name__ == "__main__":
+    # config["password"] = "password"
+    config["password"] = "3de4922d8b6ac5a1aad9"
+    config["username"] = "admin"
+    config["tenant"] = "admin"
+    # config["auth_url"] = "http://192.168.122.206:5000/v2.0"
+    config["auth_url"] = "http://192.168.122.201:5000/v2.0"
+    # config["endpoint_type"] = "internalURL"
+    init_callback()
+    print config['util'].get_stats()
+else:
+    collectd.register_config(configure_callback)
+    collectd.register_init(init_callback)
+    collectd.register_read(read_callback)
