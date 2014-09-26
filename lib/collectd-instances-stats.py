@@ -120,6 +120,8 @@ class OpenstackUtils:
         for vm in nova_client.servers.list(search_opts={'all_tenants':1}):
             status = vm.status.lower()
             stats['status'][status] = stats['status'].setdefault(status, 0) + 1
+            stats['status']['total_count'] = \
+                stats['status'].setdefault('total_count', 0) + 1
             flavor = flavors[vm.flavor['id']]
             stats['flavors'][flavor] = stats['flavors'].setdefault(flavor, 0) + 1
             if images.has_key(vm.image['id']):
