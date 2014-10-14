@@ -250,17 +250,6 @@ def read_callback(data=None):
     log_verbose("Leaving read_callback")
 
 
-if __name__ == "__main__":
-    # config["password"] = "password"
-    config["password"] = "3de4922d8b6ac5a1aad9"
-    config["username"] = "admin"
-    config["tenant"] = "admin"
-    # config["auth_url"] = "http://192.168.122.206:5000/v2.0"
-    config["auth_url"] = "http://192.168.122.201:5000/v2.0"
-    # config["endpoint_type"] = "internalURL"
-    init_callback()
-    print config['util'].get_stats()
-else:
-    collectd.register_config(configure_callback)
-    collectd.register_init(init_callback)
-    collectd.register_read(read_callback)
+collectd.register_config(configure_callback)
+collectd.register_init(init_callback)
+collectd.register_read(read_callback)
