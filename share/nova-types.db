@@ -2,6 +2,5 @@ servers   count:GAUGE:0:U, load:GAUGE:0:U
 disk      local:GAUGE:0:U, local_used:GAUGE:0:U, free:GAUGE:0:U, disk_available_least:GAUGE:0:U
 instances value:GAUGE:0:U
 vcpus     value:GAUGE:0:U
-nova-services  nova-cert-total-count-:GAUGE:0:U, nova-cert-up:GAUGE:0:U, nova-cert-enabled:GAUGE:0:U, nova-compute-total-count-:GAUGE:0:U, nova-compute-up:GAUGE:0:U, nova-compute-enabled:GAUGE:0:U, nova-conductor-total-count-:GAUGE:0:U, nova-conductor-up:GAUGE:0:U, nova-conductor-enabled:GAUGE:0:U, nova-consoleauth-total-count-:GAUGE:0:U, nova-consoleauth-up:GAUGE:0:U, nova-consoleauth-enabled:GAUGE:0:U, nova-scheduler-total-count-:GAUGE:0:U, nova-scheduler-up:GAUGE:0:U, nova-scheduler-enabled:GAUGE:0:U
 images    value:GAUGE:0:U
 flavors   value:GAUGE:0:U
