@@ -112,7 +112,7 @@ class OpenstackUtils:
             flavors[flavor.id] = flavor.name
 
         stats = {
-            'status': {k.lower():0 for k in OpenstackUtils.STATUS},
+            'instances': {k.lower():0 for k in OpenstackUtils.STATUS},
             'images': {k:0 for k in images.values()},
             'flavors': {k:0 for k in flavors.values()}
         }
