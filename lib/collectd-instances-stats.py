@@ -124,7 +124,7 @@ class OpenstackUtils:
                 stats['status'].setdefault('total_count', 0) + 1
             flavor = flavors[vm.flavor['id']]
             stats['flavors'][flavor] = stats['flavors'].setdefault(flavor, 0) + 1
-            if images.has_key(vm.image['id']):
+            if type(vm.image) is dict and vm.image.has_key('id') and images.has_key(vm.image['id']):
                 image = images[vm.image['id']]
                 stats["images"][image] = stats["images"].setdefault(image, 0) + 1
 
