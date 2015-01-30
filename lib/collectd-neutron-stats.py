@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- encoding: utf-8 -*-
 #
-# Collectd plugin for graphing nova hypervisor-stats
+# Collectd plugin for graphing neutron resources
 #
 # Copyright © 2014 eNovance <licensing@enovance.com>
 #
@@ -36,7 +36,7 @@ version = '0.1.0'
 config = {
     'endpoint_type': "internalURL",
     'verbose_logging': False,
-    'public_network': 'public',
+    'public_network': 'public'
 }
 
 
@@ -56,15 +56,25 @@ class OpenstackUtils:
                 log_error("Cannot connect to neutron: %s\n" % e)
 
     def get_stats(self):
+        global config
         stats = {}
         self.last_stats = int(mktime(datetime.now().timetuple()))
         kwargs = {'retrieve_all': True, 'fields': 'id'}
         stats['networks'] = [ len(self.neutron_client.list_networks(**kwargs)['networks']) ]
         stats['ports'] = [ len(self.neutron_client.list_ports(**kwargs)["ports"]) ]
+        stats['routers'] = [ len(self.neutron_client.list_routers(**kwargs)["routers"]) ]
         stats['floatingips'] = [ len(self.neutron_client.list_floatingips(**kwargs)['floatingips']) ]
         if self.public_network:
             total_ip = self._estimate_total_ip()
             stats['floatingips'].append(total_ip)
+        if any(e['alias'] == 'lbaas' for e in self.neutron_client.list_extensions()['extensions']):
+            stats['lbaas'] = [ len(self.neutron_client.list_vips(**kwargs)["vips"]) ]
+            stats['lbaas'].append(len(self.neutron_client.list_pools(**kwargs)["pools"]))
+        snat = 0
+        for router in self.neutron_client.list_routers()['routers']:
+          if router['external_gateway_info'] and router['external_gateway_info']['enable_snat']:
+            snat += 1
+        stats['snat_external_gateway'] = [ snat ]
 
         return stats
 
@@ -204,7 +214,7 @@ def init_callback():
     """Initialization block"""
     global config
     connect(config)
-    log_verbose('Got a valid connection to nova API')
+    log_verbose('Got a valid connection to neutron API')
 
 
 def read_callback(data=None):
