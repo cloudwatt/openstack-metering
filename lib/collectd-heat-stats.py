@@ -55,7 +55,7 @@ class OpenstackUtils:
         stacks = list(self.heat_client.stacks.list(**kwargs))
         stats['stacks'] = [
             len(stacks),
-            len(filter(lambda s: s.stack_status == "CREATE_SUCCESS", stacks)),
+            len(filter(lambda s: s.stack_status == "CREATE_COMPLETE", stacks)),
             len(filter(lambda s: s.stack_status == "CREATE_FAILED", stacks))
         ]
         return stats
