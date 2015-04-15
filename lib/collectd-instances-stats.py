@@ -114,7 +114,8 @@ class OpenstackUtils:
         stats = {
             'instances': {k.lower():0 for k in OpenstackUtils.STATUS},
             'images': {k:0 for k in images.values()},
-            'flavors': {k:0 for k in flavors.values()}
+            'flavors': {k:0 for k in flavors.values()},
+            'boot': {'ephemeral': 0, 'volume': 0}
         }
 
         for vm in nova_client.servers.list(search_opts={'all_tenants':1}):
@@ -127,6 +128,9 @@ class OpenstackUtils:
             if type(vm.image) is dict and vm.image.has_key('id') and images.has_key(vm.image['id']):
                 image = images[vm.image['id']]
                 stats["images"][image] = stats["images"].setdefault(image, 0) + 1
+                stats['boot']['ephemeral'] += 1
+            else:
+                stats['boot']['volume'] += 1
 
         return stats
 
