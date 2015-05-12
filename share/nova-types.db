@@ -4,3 +4,5 @@ instances value:GAUGE:0:U
 vcpus     value:GAUGE:0:U
 images    value:GAUGE:0:U
 flavors   value:GAUGE:0:U
+service   count:GAUGE:0:U, up:GAUGE:0:U, enabled:GAUGE:0:U
+boot      value:GAUGE:0:U
