@@ -28,13 +28,13 @@ Add the following to your collectd config and restart collectd.
      <LoadPlugin "python">
          Globals true
      </LoadPlugin>
-    
+
      <Plugin "python">
      # collectd-nova-hypervisor-stats.py is at /usr/local/lib/collectd-nova-hypervisor-stats.py
      ModulePath "/usr/local/lib"
-    
+
      Import "collectd-nova-hypervisor-stats"
-    
+
      <Module "collectd-nova-hypervisor-stats">
             AuthURL   "http://myopenstack.cloud.home:5000/v2.0"
             Username  "admin"
@@ -44,7 +44,7 @@ Add the following to your collectd config and restart collectd.
 	     	     Vcpus 16
 		    	 Memory 1.5
 		     </Overcommit>
-			
+
      </Module>
      </Plugin>
 
@@ -69,12 +69,12 @@ Add the following to your collectd config and restart collectd.
      <LoadPlugin "python">
          Globals true
      </LoadPlugin>
-    
+
      <Plugin "python">
      ModulePath "/usr/local/lib"
-    
+
      Import "collectd-neutron-floatingips"
-    
+
      <Module "collectd-neutron-floatingips">
             AuthURL   "http://myopenstack.cloud.home:5000/v2.0"
             Username  "admin"
@@ -110,10 +110,10 @@ Add the following to your collectd config and restart collectd.
      <LoadPlugin "python">
          Globals true
      </LoadPlugin>
-    
+
      <Plugin "python">
      ModulePath "/usr/local/lib"
-    
+
      Import "collectd-neutron-floatingips"
 
      <Module "collectd-neutron-floatingips">
@@ -143,10 +143,10 @@ Add the following to your collectd config and restart collectd.
      <LoadPlugin "python">
          Globals true
      </LoadPlugin>
-    
+
      <Plugin "python">
      ModulePath "/usr/local/lib"
-    
+
      Import "collectd-keystone-stats"
 
      <Module "collectd-keystone-stats">
@@ -179,10 +179,10 @@ Add the following to your collectd config and restart collectd.
      <LoadPlugin "python">
          Globals true
      </LoadPlugin>
-    
+
      <Plugin "python">
      ModulePath "/usr/local/lib"
-    
+
      Import "collectd-nova-aggregate"
 
      <Module "collectd-nova-aggregate">
@@ -220,10 +220,10 @@ Add the following to your collectd config and restart collectd.
      <LoadPlugin "python">
          Globals true
      </LoadPlugin>
-    
+
      <Plugin "python">
      ModulePath "/usr/local/lib"
-    
+
      Import "collectd-instances-stats"
 
      <Module "collectd-instances-stats">
@@ -252,31 +252,31 @@ bin directory.  To use it give the collectd script as argument and
 some other required parameters.  Not all parameters are yet supported.
 
     ./bin/collectd-cli.py --script ./lib/collectd-nova-hypervisor-stats.py \
-            --auth_url $OS_AUTH_URL --username $OS_USERNAME --tenant $OS_TENANT_NAME --password $OS_PASSWORD 
+            --auth_url $OS_AUTH_URL --username $OS_USERNAME --tenant $OS_TENANT_NAME --password $OS_PASSWORD
 
 # Graph examples #
 
 ## collectd-cinder-stats ##
 
-![cinder](https://raw.githubusercontent.com/enovance/openstack-metrics/master/screenshots/cinder.png)
+![cinder](https://raw.githubusercontent.com/cloudwatt/openstack-metering/master/screenshots/cinder.png)
 
 ## collectd-nova-aggregate ##
 
-![nova-aggregate](https://raw.githubusercontent.com/enovance/openstack-metrics/master/screenshots/nova-aggregate.png)
+![nova-aggregate](https://raw.githubusercontent.com/cloudwatt/openstack-metering/master/screenshots/nova-aggregate.png)
 
 ## collectd-neutron-floatingips ##
 
-![floatingips](https://raw.githubusercontent.com/enovance/openstack-metrics/master/screenshots/neutron-floatingips.png)
+![floatingips](https://raw.githubusercontent.com/cloudwatt/openstack-metering/master/screenshots/neutron-floatingips.png)
 
 ## collectd-keystone-stats ##
 
-![keystone](https://raw.githubusercontent.com/enovance/openstack-metrics/master/screenshots/keystone.png)
+![keystone](https://raw.githubusercontent.com/cloudwatt/openstack-metering/master/screenshots/keystone.png)
 
 ## collectd-nova-hypervisor-stats ##
 
 This was done using [Librato collectd plugin](https://github.com/librato/collectd-librato)
 
-![Hypervisor](https://raw.githubusercontent.com/enovance/openstack-metrics/master/screenshots/nova-hypervisor.png)
-![disk](https://raw.githubusercontent.com/enovance/openstack-metrics/master/screenshots/nova-disk.png)
-![Mem](https://raw.githubusercontent.com/enovance/openstack-metrics/master/screenshots/nova-memory.png)
-![instance](https://raw.githubusercontent.com/enovance/openstack-metrics/master/screenshots/nova-instance.png)
+![Hypervisor](https://raw.githubusercontent.com/cloudwatt/openstack-metering/master/screenshots/nova-hypervisor.png)
+![disk](https://raw.githubusercontent.com/cloudwatt/openstack-metering/master/screenshots/nova-disk.png)
+![Mem](https://raw.githubusercontent.com/cloudwatt/openstack-metering/master/screenshots/nova-memory.png)
+![instance](https://raw.githubusercontent.com/cloudwatt/openstack-metering/master/screenshots/nova-instance.png)
